@@ -13,18 +13,21 @@ export const CELL = 24;
 export const PAL = {
   black: '#0c0c0e',
   // plates
-  plate: '#8e959d',
-  plateHi: '#bfc6cd',
-  plateLo: '#575d64',
-  plateBrace: '#7a818a',
-  obstacle: '#4e545c',
+  plate: '#9ba1a9',
+  plateFace: '#8f959d',
+  plateHi: '#c9cfd6',
+  plateLo: '#5b6168',
+  plateBrace: '#787e86',
+  plateGroove: '#41464c',
+  obstacle: '#5a6068',
   obstacleHi: '#6d747d',
-  obstacleLo: '#33383e',
+  obstacleLo: '#3a3f45',
   // pipes
-  pipeDark: '#5e1810',
-  pipeBody: '#a03222',
-  pipeMid: '#c24a2a',
-  pipeHi: '#e87c46',
+  pipeDark: '#4a100a',
+  pipeBody: '#9c2c14',
+  pipeMid: '#cc5024',
+  pipeHi: '#e88848',
+  pipeGlint: '#f8c088',
   collar: '#b8bec4',
   collarLo: '#6b7178',
   // flooz
@@ -98,21 +101,23 @@ function strokePath(
 }
 
 /**
- * Rust pipe body: black outline, deep-red shadow, red body, hot highlight
- * offset toward the light (up-left), like the chunky Amiga pipes.
+ * Fat rust pipe body shaded like a top-lit cylinder: black outline, deep
+ * shadow toward the lower edge, broad hot band across the upper middle
+ * with a pale glint — matching the chunky pipes of the reference era.
  */
 function pipeBody(g: CanvasRenderingContext2D, kind: PieceKind, ch: number, gold = false): void {
-  strokePath(g, kind, ch, 16, PAL.black);
-  strokePath(g, kind, ch, 14, gold ? '#6a5410' : PAL.pipeDark);
-  strokePath(g, kind, ch, 11, gold ? '#b08a1c' : PAL.pipeBody, 1);
-  strokePath(g, kind, ch, 7, gold ? '#d8b23c' : PAL.pipeMid, -1);
-  strokePath(g, kind, ch, 3, gold ? '#f2dc7a' : PAL.pipeHi, -2);
+  strokePath(g, kind, ch, 18, PAL.black);
+  strokePath(g, kind, ch, 16, gold ? '#5c4a0e' : PAL.pipeDark);
+  strokePath(g, kind, ch, 13, gold ? '#a8841a' : PAL.pipeBody, 1);
+  strokePath(g, kind, ch, 9, gold ? '#d0aa30' : PAL.pipeMid, -1);
+  strokePath(g, kind, ch, 5, gold ? '#eccc60' : PAL.pipeHi, -2);
+  strokePath(g, kind, ch, 2, gold ? '#f8ecac' : PAL.pipeGlint, -3);
 }
 
-/** Grey collar flanges at the open cell edges. */
+/** Chunky grey collar flanges at the open cell edges. */
 function flange(g: CanvasRenderingContext2D, side: Dir): void {
-  const w = 20;
-  const t = 4;
+  const w = 22;
+  const t = 5;
   const c = CELL / 2;
   const draw = (x: number, y: number, fw: number, fh: number, horizontal: boolean) => {
     g.fillStyle = PAL.black;
@@ -120,8 +125,15 @@ function flange(g: CanvasRenderingContext2D, side: Dir): void {
     g.fillStyle = PAL.collarLo;
     g.fillRect(x, y, fw, fh);
     g.fillStyle = PAL.collar;
-    if (horizontal) g.fillRect(x, y, fw, 2);
-    else g.fillRect(x, y, 2, fh);
+    if (horizontal) {
+      g.fillRect(x, y, fw, 2);
+      g.fillStyle = PAL.white;
+      g.fillRect(x + 1, y, fw - 2, 1);
+    } else {
+      g.fillRect(x, y, 2, fh);
+      g.fillStyle = PAL.white;
+      g.fillRect(x, y + 1, 1, fh - 2);
+    }
   };
   if (side === 0) draw(c - w / 2, 0, w, t, true);
   if (side === 2) draw(c - w / 2, CELL - t, w, t, true);
@@ -161,18 +173,21 @@ function arrow(g: CanvasRenderingContext2D, dir: Dir, color: string): void {
   g.restore();
 }
 
-/** Blue machine housing used by start/end pieces. */
+/**
+ * Compact blue machine housing used by start/end pieces — sits on the
+ * plate rather than filling the whole cell, like the reference's S block.
+ */
 function housing(g: CanvasRenderingContext2D): void {
   g.fillStyle = PAL.black;
-  g.fillRect(1, 1, 22, 22);
+  g.fillRect(3, 3, 18, 18);
   g.fillStyle = PAL.housing;
-  g.fillRect(2, 2, 20, 20);
+  g.fillRect(4, 4, 16, 16);
   g.fillStyle = PAL.housingHi;
-  g.fillRect(2, 2, 20, 2);
-  g.fillRect(2, 2, 2, 20);
+  g.fillRect(4, 4, 16, 2);
+  g.fillRect(4, 4, 2, 16);
   g.fillStyle = '#1c3478';
-  g.fillRect(20, 4, 2, 18);
-  g.fillRect(4, 20, 18, 2);
+  g.fillRect(18, 6, 2, 14);
+  g.fillRect(6, 18, 14, 2);
 }
 
 /** Chunky 5x7 letter for S / E labels. */
@@ -193,51 +208,43 @@ function letter(g: CanvasRenderingContext2D, ch: 'S' | 'E', x: number, y: number
 export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExit?: Dir): void {
   switch (kind) {
     case 'OBSTACLE': {
-      // Dark plate with a heavy riveted X brace — clearly impassable.
-      g.fillStyle = PAL.obstacleLo;
+      // Dark plate with a heavy raised X brace — clearly impassable.
+      g.fillStyle = PAL.plateGroove;
       g.fillRect(0, 0, CELL, CELL);
       g.fillStyle = PAL.obstacle;
       g.fillRect(1, 1, CELL - 2, CELL - 2);
-      g.strokeStyle = PAL.obstacleHi;
-      g.lineWidth = 4;
-      g.beginPath();
-      g.moveTo(2, 2); g.lineTo(CELL - 2, CELL - 2);
-      g.moveTo(CELL - 2, 2); g.lineTo(2, CELL - 2);
-      g.stroke();
-      g.strokeStyle = PAL.obstacleLo;
-      g.lineWidth = 1;
-      g.beginPath();
-      g.moveTo(3, 4); g.lineTo(CELL - 1, CELL);
-      g.moveTo(CELL - 1, 4); g.lineTo(3, CELL);
-      g.stroke();
       g.fillStyle = PAL.obstacleHi;
-      for (const [rx, ry] of [[3, 3], [18, 3], [3, 18], [18, 18]] as const) {
-        g.fillRect(rx, ry, 2, 2);
-      }
+      g.fillRect(1, 1, CELL - 2, 1);
+      g.fillRect(1, 1, 1, CELL - 2);
+      g.fillStyle = PAL.obstacleLo;
+      g.fillRect(1, CELL - 2, CELL - 2, 1);
+      g.fillRect(CELL - 2, 1, 1, CELL - 2);
+      g.strokeStyle = PAL.obstacleLo;
+      g.lineWidth = 6;
+      g.beginPath();
+      g.moveTo(3, 3); g.lineTo(CELL - 3, CELL - 3);
+      g.moveTo(CELL - 3, 3); g.lineTo(3, CELL - 3);
+      g.stroke();
+      g.strokeStyle = PAL.obstacleHi;
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(3, 3); g.lineTo(CELL - 4, CELL - 4);
+      g.moveTo(CELL - 4, 3); g.lineTo(3, CELL - 4);
+      g.stroke();
       break;
     }
     case 'START': {
-      housing(g);
       if (startExit !== undefined) {
         const spoutKind = (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'] as const)[startExit]!;
         pipeBody(g, spoutKind, 0);
-        // Re-cover the inner half with housing so the spout only pokes out.
-        g.fillStyle = PAL.housing;
-        const c = CELL / 2;
-        if (startExit === 1) g.fillRect(2, 2, c - 2, 20);
-        if (startExit === 3) g.fillRect(c, 2, 22 - c, 20);
-        if (startExit === 2) g.fillRect(2, 2, 20, c - 2);
-        if (startExit === 0) g.fillRect(2, c, 20, 22 - c);
-        g.fillStyle = PAL.housingHi;
-        g.fillRect(2, 2, 20, 2);
-        g.fillRect(2, 2, 2, 20);
       }
-      letter(g, 'S', 9, 8, PAL.ledYellow);
+      housing(g);
+      letter(g, 'S', 10, 9, PAL.ledYellow);
       break;
     }
     case 'END': {
       housing(g);
-      letter(g, 'E', 9, 8, PAL.ledYellow);
+      letter(g, 'E', 10, 9, PAL.ledYellow);
       break;
     }
     case 'X': case 'BONUS': {
@@ -277,34 +284,48 @@ export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExi
   }
 }
 
-/** Background plate tile with diagonal brace relief (the empty-cell look). */
+/**
+ * Background plate tile: dark groove between cells, beveled frame strip,
+ * recessed face with thin diagonal X braces ending in corner pads.
+ */
 export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): void {
-  g.fillStyle = PAL.plate;
+  // groove between plates
+  g.fillStyle = PAL.plateGroove;
   g.fillRect(x, y, CELL, CELL);
-  // bevel
+  // frame strip with bevel
+  g.fillStyle = PAL.plate;
+  g.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
   g.fillStyle = PAL.plateHi;
-  g.fillRect(x, y, CELL, 1);
-  g.fillRect(x, y, 1, CELL);
+  g.fillRect(x + 1, y + 1, CELL - 2, 1);
+  g.fillRect(x + 1, y + 1, 1, CELL - 2);
   g.fillStyle = PAL.plateLo;
-  g.fillRect(x, y + CELL - 1, CELL, 1);
-  g.fillRect(x + CELL - 1, y, 1, CELL);
-  // diagonal braces
-  g.strokeStyle = PAL.plateBrace;
-  g.lineWidth = 2;
-  g.beginPath();
-  g.moveTo(x + 2, y + 2); g.lineTo(x + CELL - 2, y + CELL - 2);
-  g.moveTo(x + CELL - 2, y + 2); g.lineTo(x + 2, y + CELL - 2);
-  g.stroke();
+  g.fillRect(x + 1, y + CELL - 2, CELL - 2, 1);
+  g.fillRect(x + CELL - 2, y + 1, 1, CELL - 2);
+  // recessed face
+  g.fillStyle = PAL.plateFace;
+  g.fillRect(x + 3, y + 3, CELL - 6, CELL - 6);
+  g.fillStyle = PAL.plateLo;
+  g.fillRect(x + 3, y + 3, CELL - 6, 1);
+  g.fillRect(x + 3, y + 3, 1, CELL - 6);
+  // thin diagonal braces: light line with dark shadow line beside it
   g.strokeStyle = PAL.plateHi;
   g.lineWidth = 1;
   g.beginPath();
-  g.moveTo(x + 2, y + 1); g.lineTo(x + CELL - 3, y + CELL - 4);
-  g.moveTo(x + CELL - 3, y + 1); g.lineTo(x + 2, y + CELL - 4);
+  g.moveTo(x + 5.5, y + 5.5); g.lineTo(x + CELL - 5.5, y + CELL - 5.5);
+  g.moveTo(x + CELL - 5.5, y + 5.5); g.lineTo(x + 5.5, y + CELL - 5.5);
   g.stroke();
-  // corner rivets
-  g.fillStyle = PAL.plateLo;
-  for (const [rx, ry] of [[2, 2], [CELL - 4, 2], [2, CELL - 4], [CELL - 4, CELL - 4]] as const) {
-    g.fillRect(x + rx, y + ry, 2, 2);
+  g.strokeStyle = PAL.plateBrace;
+  g.beginPath();
+  g.moveTo(x + 6.5, y + 5.5); g.lineTo(x + CELL - 4.5, y + CELL - 6.5);
+  g.moveTo(x + CELL - 4.5, y + 6.5); g.lineTo(x + 5.5, y + CELL - 4.5);
+  g.stroke();
+  // corner pads at the brace ends
+  g.fillStyle = PAL.plate;
+  for (const [rx, ry] of [[3, 3], [CELL - 7, 3], [3, CELL - 7], [CELL - 7, CELL - 7]] as const) {
+    g.fillRect(x + rx, y + ry, 4, 4);
+    g.fillStyle = PAL.plateLo;
+    g.fillRect(x + rx + 3, y + ry + 3, 1, 1);
+    g.fillStyle = PAL.plate;
   }
 }
 
@@ -349,8 +370,8 @@ export function drawFlooz(
     pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
     g.stroke();
   };
-  stroke(9, PAL.floozEdge);
-  stroke(7, PAL.flooz);
+  stroke(11, PAL.floozEdge);
+  stroke(8, PAL.flooz);
   stroke(3, PAL.floozHi);
   if (kind.startsWith('RESERVOIR') && progress > 0.35) {
     const f = Math.min(1, (progress - 0.35) / 0.4);

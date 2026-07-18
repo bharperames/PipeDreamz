@@ -115,6 +115,11 @@ export class Renderer2D {
   drawBoard(level: LevelDef): void {
     const g = this.g;
     const { gridW, gridH } = level;
+    // thin metal frame around the whole board
+    g.fillStyle = PAL.frameLo;
+    g.fillRect(this.boardX - 3, this.boardY - 3, gridW * CELL + 6, gridH * CELL + 6);
+    g.fillStyle = PAL.frame;
+    g.fillRect(this.boardX - 2, this.boardY - 2, gridW * CELL + 4, gridH * CELL + 4);
     for (let y = 0; y < gridH; y++) {
       for (let x = 0; x < gridW; x++) {
         const o = this.cellOrigin(x, y);
@@ -216,15 +221,16 @@ export class Renderer2D {
       }
       y += boxH + GAP;
     }
-    // Mascot below the dispenser if there is room.
-    if (this.bufH - y > 46) {
+    // Mascot overlaps the bottom-left corner, in front of the dispenser
+    // column — only when a single dispenser leaves him room to stand.
+    if (queues.length === 1) {
       drawMascot(g, x + 2, this.bufH - 50);
     }
   }
 
   // ---------- HUD ----------
 
-  /** LED-segment digit, 4x7 px. */
+  /** Chunky LED-segment digit, 6x10 px with 2px strokes. */
   private ledDigit(x: number, y: number, d: number, color: string): void {
     const g = this.g;
     //   0
@@ -246,19 +252,19 @@ export class Renderer2D {
     ];
     const s = SEG[d]!;
     g.fillStyle = color;
-    if (s[0]) g.fillRect(x, y, 4, 1);
-    if (s[1]) g.fillRect(x, y, 1, 4);
-    if (s[2]) g.fillRect(x + 3, y, 1, 4);
-    if (s[3]) g.fillRect(x, y + 3, 4, 1);
-    if (s[4]) g.fillRect(x, y + 3, 1, 4);
-    if (s[5]) g.fillRect(x + 3, y + 3, 1, 4);
-    if (s[6]) g.fillRect(x, y + 6, 4, 1);
+    if (s[0]) g.fillRect(x, y, 6, 2);
+    if (s[1]) g.fillRect(x, y, 2, 6);
+    if (s[2]) g.fillRect(x + 4, y, 2, 6);
+    if (s[3]) g.fillRect(x, y + 4, 6, 2);
+    if (s[4]) g.fillRect(x, y + 4, 2, 6);
+    if (s[5]) g.fillRect(x + 4, y + 4, 2, 6);
+    if (s[6]) g.fillRect(x, y + 8, 6, 2);
   }
 
   private ledNumber(x: number, y: number, value: number, digits: number, color: string): number {
     const s = Math.max(0, Math.round(value)).toString().padStart(digits, '0').slice(-digits);
-    for (let i = 0; i < s.length; i++) this.ledDigit(x + i * 6, y, Number(s[i]), color);
-    return x + s.length * 6;
+    for (let i = 0; i < s.length; i++) this.ledDigit(x + i * 7, y, Number(s[i]), color);
+    return x + s.length * 7;
   }
 
   private label(s: string, x: number, y: number, color: string): number {
@@ -290,28 +296,29 @@ export class Renderer2D {
     g.fillStyle = PAL.hudBarHi;
     g.fillRect(2, 2, this.bufW - 4, 1);
 
-    const midY = 6;
+    const digY = 5;
+    const labY = 6;
     let x = 8;
-    x = this.label('P1:', x, midY, PAL.white) + 3;
-    this.inset(x, midY, 7 * 6, 7);
-    x = this.ledNumber(x + 1, midY, s.score, 7, PAL.ledYellow) + 8;
-    x = this.label('P2:', x, midY, PAL.white) + 3;
-    this.inset(x, midY, 7 * 6, 7);
-    x = this.ledNumber(x + 1, midY, s.score2 ?? 0, 7, PAL.ledGreen) + 8;
+    x = this.label('P1:', x, labY, PAL.white) + 4;
+    this.inset(x, digY, 7 * 7 - 1, 10);
+    x = this.ledNumber(x + 1, digY, s.score, 7, PAL.ledYellow) + 10;
+    x = this.label('P2:', x, labY, PAL.white) + 4;
+    this.inset(x, digY, 7 * 7 - 1, 10);
+    this.ledNumber(x + 1, digY, s.score2 ?? 0, 7, PAL.ledGreen);
 
     // right-aligned L and D readouts
-    const dNumX = this.bufW - 8 - 2 * 6;
-    this.inset(dNumX, midY, 2 * 6, 7);
-    this.ledNumber(dNumX + 1, midY, s.pipesLeft, 2, PAL.ledBlue);
-    this.label('D:', dNumX - 15, midY, PAL.white);
-    const lNumX = dNumX - 15 - 6 - 2 * 6;
-    this.inset(lNumX, midY, 2 * 6, 7);
+    const dNumX = this.bufW - 10 - 13;
+    this.inset(dNumX, digY, 14, 10);
+    this.ledNumber(dNumX + 1, digY, s.pipesLeft, 2, PAL.ledBlue);
+    this.label('D:', dNumX - 15, labY, PAL.white);
+    const lNumX = dNumX - 15 - 10 - 13;
+    this.inset(lNumX, digY, 14, 10);
     if (typeof s.level === 'number') {
-      this.ledNumber(lNumX + 1, midY, s.level, 2, PAL.ledBlue);
+      this.ledNumber(lNumX + 1, digY, s.level, 2, PAL.ledBlue);
     } else {
-      this.label('BN', lNumX + 1, midY, PAL.ledBlue);
+      this.label('BN', lNumX + 2, labY, PAL.ledBlue);
     }
-    this.label('L:', lNumX - 15, midY, PAL.white);
+    this.label('L:', lNumX - 15, labY, PAL.white);
 
     // right-hand vertical flooz timer bar
     const bx = this.bufW - GAP - BAR_W;
@@ -327,10 +334,14 @@ export class Renderer2D {
       const fh = Math.round((bh - 8) * Math.min(1, s.countdownFrac));
       g.fillStyle = PAL.red;
       g.fillRect(bx + 4, by + 4 + (bh - 8 - fh), BAR_W - 8, fh);
+      g.fillStyle = PAL.hudBarHi;
+      g.fillRect(bx + 4, by + 4 + (bh - 8 - fh), 1, fh);
     } else {
       const fh = Math.round((bh - 8) * Math.min(1, s.progressFrac));
       g.fillStyle = PAL.flooz;
       g.fillRect(bx + 4, by + 4 + (bh - 8 - fh), BAR_W - 8, fh);
+      g.fillStyle = PAL.floozHi;
+      g.fillRect(bx + 4, by + 4 + (bh - 8 - fh), 1, fh);
     }
 
     if (s.fastFlow && s.countdownFrac <= 0) {
