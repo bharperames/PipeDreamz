@@ -192,19 +192,9 @@ export class PlayingScreen {
       pipesLeft: round.level.distance - round.flow.pipesFilled,
       countdownFrac:
         round.flow.state === 'countdown' ? round.flow.countdownMs / round.level.delayMs : 0,
-      countdownLabel:
-        round.flow.state === 'countdown'
-          ? 'FLOOZ IN'
-          : round.flow.fastForward
-            ? 'FAST x2'
-            : 'FLOWING',
-      hint: this.paused
-        ? '*** PAUSED — P TO RESUME ***'
-        : mode === 'competitive'
-          ? 'P1 ARROWS+SPACE  P2 WASD+Q  F FAST'
-          : mode === 'expert'
-            ? 'CLICK=BOTTOM  RCLICK/SHIFT=TOP  F FAST'
-            : 'CLICK/SPACE PLACE  F FAST  P PAUSE  ESC QUIT',
+      progressFrac: Math.min(1, round.flow.pipesFilled / round.level.distance),
+      paused: this.paused,
+      fastFlow: round.flow.fastForward,
     });
     r.present();
   }

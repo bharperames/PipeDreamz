@@ -1,43 +1,57 @@
 import { Dir, PieceKind } from '../core/types';
 
 /**
- * Original pixel-art piece sprites drawn in code, in the spirit of the
- * chunky 16-color look of 1989 Amiga puzzlers. Cell sprites are 24x24
- * internal pixels; the whole framebuffer is integer-upscaled with
- * nearest-neighbor sampling for the authentic look.
+ * Original pixel-art sprites drawn in code, styled after the visual
+ * language of 1989 Amiga pipe puzzlers: rust-red pipes with a dark shadow
+ * band and hot highlight, riveted grey plate tiles with diagonal braces,
+ * and bright yellow flooz. Cell sprites are 24x24 internal pixels; the
+ * framebuffer is integer-upscaled with nearest-neighbor sampling.
  */
 
 export const CELL = 24;
 
 export const PAL = {
-  bg: '#20262b',
-  boardDark: '#2c353c',
-  boardLight: '#333d45',
-  frame: '#55636e',
-  frameHi: '#7c8b96',
-  frameLo: '#39434b',
-  outline: '#14181c',
-  pipe: '#98a4ae',
-  pipeHi: '#d6dee4',
-  pipeLo: '#5c6872',
-  flooz: '#28c62c',
-  floozHi: '#8af07e',
-  floozLo: '#158a1c',
+  black: '#0c0c0e',
+  // plates
+  plate: '#8e959d',
+  plateHi: '#bfc6cd',
+  plateLo: '#575d64',
+  plateBrace: '#7a818a',
+  obstacle: '#4e545c',
+  obstacleHi: '#6d747d',
+  obstacleLo: '#33383e',
+  // pipes
+  pipeDark: '#5e1810',
+  pipeBody: '#a03222',
+  pipeMid: '#c24a2a',
+  pipeHi: '#e87c46',
+  collar: '#b8bec4',
+  collarLo: '#6b7178',
+  // flooz
+  floozEdge: '#7a6408',
+  flooz: '#eed222',
+  floozHi: '#faf3a2',
+  // hud
+  hudBar: '#701c14',
+  hudBarHi: '#a03428',
+  hudInset: '#101012',
+  ledYellow: '#f2d022',
+  ledGreen: '#3ee04c',
+  ledBlue: '#4c8cf0',
+  // misc
+  frame: '#9aa1a8',
+  frameLo: '#4c5258',
+  housing: '#2c50b4',
+  housingHi: '#5a7ade',
+  white: '#f2f4f2',
+  red: '#d03828',
   gold: '#e0b23c',
-  goldLo: '#8a6a18',
-  green: '#3fae4e',
-  red: '#c8483c',
-  blue: '#6f86c8',
-  concrete: '#68625a',
-  concreteLo: '#443f39',
-  white: '#f0f2f0',
 } as const;
 
 /** Point on a channel's flow path (cell-local 0..CELL coords). */
 export function pathPoint(kind: PieceKind, channelIdx: number, t: number): { x: number; y: number } {
   const c = CELL / 2;
   const lerp = (a: number, b: number) => a + (b - a) * t;
-  // Edge midpoints: N (c,0)  E (CELL,c)  S (c,CELL)  W (0,c)
   const arc = (cx: number, cy: number, a0: number, a1: number) => {
     const a = a0 + (a1 - a0) * t;
     return { x: cx + c * Math.cos(a), y: cy + c * Math.sin(a) };
@@ -68,45 +82,51 @@ function strokePath(
   ch: number,
   width: number,
   color: string,
+  offY = 0,
 ): void {
   g.strokeStyle = color;
   g.lineWidth = width;
   g.lineCap = 'butt';
   g.beginPath();
-  const steps = 16;
+  const steps = 20;
   for (let i = 0; i <= steps; i++) {
     const p = pathPoint(kind, ch, i / steps);
-    if (i === 0) g.moveTo(p.x, p.y);
-    else g.lineTo(p.x, p.y);
+    if (i === 0) g.moveTo(p.x, p.y + offY);
+    else g.lineTo(p.x, p.y + offY);
   }
   g.stroke();
 }
 
-/** Pipe body along a channel: outline, steel fill, top highlight. */
-function pipeBody(g: CanvasRenderingContext2D, kind: PieceKind, ch: number, steel: string = PAL.pipe): void {
-  strokePath(g, kind, ch, 13, PAL.outline);
-  strokePath(g, kind, ch, 11, PAL.pipeLo);
-  strokePath(g, kind, ch, 8, steel);
-  strokePath(g, kind, ch, 3, PAL.pipeHi);
+/**
+ * Rust pipe body: black outline, deep-red shadow, red body, hot highlight
+ * offset toward the light (up-left), like the chunky Amiga pipes.
+ */
+function pipeBody(g: CanvasRenderingContext2D, kind: PieceKind, ch: number, gold = false): void {
+  strokePath(g, kind, ch, 16, PAL.black);
+  strokePath(g, kind, ch, 14, gold ? '#6a5410' : PAL.pipeDark);
+  strokePath(g, kind, ch, 11, gold ? '#b08a1c' : PAL.pipeBody, 1);
+  strokePath(g, kind, ch, 7, gold ? '#d8b23c' : PAL.pipeMid, -1);
+  strokePath(g, kind, ch, 3, gold ? '#f2dc7a' : PAL.pipeHi, -2);
 }
 
-/** Flange collars at the open cell edges. */
+/** Grey collar flanges at the open cell edges. */
 function flange(g: CanvasRenderingContext2D, side: Dir): void {
-  g.fillStyle = PAL.outline;
-  const w = 17;
+  const w = 20;
   const t = 4;
   const c = CELL / 2;
-  const draw = (x: number, y: number, fw: number, fh: number) => {
+  const draw = (x: number, y: number, fw: number, fh: number, horizontal: boolean) => {
+    g.fillStyle = PAL.black;
     g.fillRect(x - 1, y - 1, fw + 2, fh + 2);
-    g.fillStyle = PAL.pipeLo;
+    g.fillStyle = PAL.collarLo;
     g.fillRect(x, y, fw, fh);
-    g.fillStyle = PAL.pipeHi;
-    g.fillRect(x, y, fw, 1);
+    g.fillStyle = PAL.collar;
+    if (horizontal) g.fillRect(x, y, fw, 2);
+    else g.fillRect(x, y, 2, fh);
   };
-  if (side === 0) draw(c - w / 2, 0, w, t);
-  if (side === 2) draw(c - w / 2, CELL - t, w, t);
-  if (side === 3) draw(0, c - w / 2, t, w);
-  if (side === 1) draw(CELL - t, c - w / 2, t, w);
+  if (side === 0) draw(c - w / 2, 0, w, t, true);
+  if (side === 2) draw(c - w / 2, CELL - t, w, t, true);
+  if (side === 3) draw(0, c - w / 2, t, w, false);
+  if (side === 1) draw(CELL - t, c - w / 2, t, w, false);
 }
 
 function flangesFor(kind: PieceKind): Dir[] {
@@ -127,116 +147,164 @@ function arrow(g: CanvasRenderingContext2D, dir: Dir, color: string): void {
   g.fillStyle = color;
   g.save();
   g.translate(c, c);
-  g.rotate((Math.PI / 2) * dir); // 0=N up
+  g.rotate((Math.PI / 2) * dir);
   g.beginPath();
-  g.moveTo(0, -5);
-  g.lineTo(4, 1);
-  g.lineTo(1, 1);
-  g.lineTo(1, 5);
-  g.lineTo(-1, 5);
-  g.lineTo(-1, 1);
-  g.lineTo(-4, 1);
+  g.moveTo(0, -6);
+  g.lineTo(5, 1);
+  g.lineTo(2, 1);
+  g.lineTo(2, 6);
+  g.lineTo(-2, 6);
+  g.lineTo(-2, 1);
+  g.lineTo(-5, 1);
   g.closePath();
   g.fill();
   g.restore();
+}
+
+/** Blue machine housing used by start/end pieces. */
+function housing(g: CanvasRenderingContext2D): void {
+  g.fillStyle = PAL.black;
+  g.fillRect(1, 1, 22, 22);
+  g.fillStyle = PAL.housing;
+  g.fillRect(2, 2, 20, 20);
+  g.fillStyle = PAL.housingHi;
+  g.fillRect(2, 2, 20, 2);
+  g.fillRect(2, 2, 2, 20);
+  g.fillStyle = '#1c3478';
+  g.fillRect(20, 4, 2, 18);
+  g.fillRect(4, 20, 18, 2);
+}
+
+/** Chunky 5x7 letter for S / E labels. */
+function letter(g: CanvasRenderingContext2D, ch: 'S' | 'E', x: number, y: number, color: string): void {
+  g.fillStyle = color;
+  const rows =
+    ch === 'S'
+      ? [0b01111, 0b10000, 0b10000, 0b01110, 0b00001, 0b00001, 0b11110]
+      : [0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b11111];
+  rows.forEach((bits, ry) => {
+    for (let rx = 0; rx < 5; rx++) {
+      if (bits & (1 << (4 - rx))) g.fillRect(x + rx, y + ry, 1, 1);
+    }
+  });
 }
 
 /** Draw one piece sprite into a 24x24 context at origin. */
 export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExit?: Dir): void {
   switch (kind) {
     case 'OBSTACLE': {
-      g.fillStyle = PAL.outline;
-      g.fillRect(1, 1, 22, 22);
-      g.fillStyle = PAL.concrete;
-      g.fillRect(2, 2, 20, 20);
-      g.fillStyle = PAL.concreteLo;
-      // brick joints
-      g.fillRect(2, 8, 20, 1);
-      g.fillRect(2, 15, 20, 1);
-      g.fillRect(11, 2, 1, 6);
-      g.fillRect(6, 9, 1, 6);
-      g.fillRect(16, 9, 1, 6);
-      g.fillRect(11, 16, 1, 6);
-      g.fillStyle = '#7d766c';
-      g.fillRect(2, 2, 20, 1);
+      // Dark plate with a heavy riveted X brace — clearly impassable.
+      g.fillStyle = PAL.obstacleLo;
+      g.fillRect(0, 0, CELL, CELL);
+      g.fillStyle = PAL.obstacle;
+      g.fillRect(1, 1, CELL - 2, CELL - 2);
+      g.strokeStyle = PAL.obstacleHi;
+      g.lineWidth = 4;
+      g.beginPath();
+      g.moveTo(2, 2); g.lineTo(CELL - 2, CELL - 2);
+      g.moveTo(CELL - 2, 2); g.lineTo(2, CELL - 2);
+      g.stroke();
+      g.strokeStyle = PAL.obstacleLo;
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(3, 4); g.lineTo(CELL - 1, CELL);
+      g.moveTo(CELL - 1, 4); g.lineTo(3, CELL);
+      g.stroke();
+      g.fillStyle = PAL.obstacleHi;
+      for (const [rx, ry] of [[3, 3], [18, 3], [3, 18], [18, 18]] as const) {
+        g.fillRect(rx, ry, 2, 2);
+      }
       break;
     }
     case 'START': {
-      g.fillStyle = PAL.outline;
-      g.fillRect(2, 2, 20, 20);
-      g.fillStyle = PAL.green;
-      g.fillRect(3, 3, 18, 18);
-      g.fillStyle = '#6fd47e';
-      g.fillRect(3, 3, 18, 2);
-      // spout toward exit
+      housing(g);
       if (startExit !== undefined) {
-        g.save();
-        pipeBody(g, (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'] as const)[startExit]!, 0);
-        g.restore();
-        // Cover the non-exit half with housing again
-        g.fillStyle = PAL.green;
+        const spoutKind = (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'] as const)[startExit]!;
+        pipeBody(g, spoutKind, 0);
+        // Re-cover the inner half with housing so the spout only pokes out.
+        g.fillStyle = PAL.housing;
         const c = CELL / 2;
-        if (startExit === 1) g.fillRect(3, 3, c - 3, 18);
-        if (startExit === 3) g.fillRect(c, 3, c - 3 + 3, 18);
-        if (startExit === 2) g.fillRect(3, 3, 18, c - 3);
-        if (startExit === 0) g.fillRect(3, c, 18, c - 3 + 3);
-        arrow(g, startExit, PAL.white);
+        if (startExit === 1) g.fillRect(2, 2, c - 2, 20);
+        if (startExit === 3) g.fillRect(c, 2, 22 - c, 20);
+        if (startExit === 2) g.fillRect(2, 2, 20, c - 2);
+        if (startExit === 0) g.fillRect(2, c, 20, 22 - c);
+        g.fillStyle = PAL.housingHi;
+        g.fillRect(2, 2, 20, 2);
+        g.fillRect(2, 2, 2, 20);
       }
+      letter(g, 'S', 9, 8, PAL.ledYellow);
       break;
     }
     case 'END': {
-      g.fillStyle = PAL.outline;
-      g.fillRect(2, 2, 20, 20);
-      g.fillStyle = PAL.red;
-      g.fillRect(3, 3, 18, 18);
-      g.fillStyle = '#e08a80';
-      g.fillRect(3, 3, 18, 2);
-      g.fillStyle = PAL.white;
-      g.fillRect(10, 7, 5, 2);
-      g.fillRect(10, 7, 2, 10);
-      g.fillRect(10, 11, 4, 2);
-      g.fillRect(10, 15, 5, 2);
+      housing(g);
+      letter(g, 'E', 9, 8, PAL.ledYellow);
       break;
     }
     case 'X': case 'BONUS': {
-      const steel = kind === 'BONUS' ? PAL.gold : PAL.pipe;
-      // horizontal under, vertical over (matches flow overpass)
-      pipeBody(g, kind, 1, steel);
-      pipeBody(g, kind, 0, steel);
+      const gold = kind === 'BONUS';
+      pipeBody(g, kind, 1, gold); // horizontal under
+      pipeBody(g, kind, 0, gold); // vertical over
       for (const d of flangesFor(kind)) flange(g, d);
-      if (kind === 'BONUS') {
-        g.fillStyle = PAL.goldLo;
-        g.fillRect(10, 10, 4, 4);
-        g.fillStyle = PAL.gold;
-        g.fillRect(11, 9, 2, 6);
-        g.fillRect(9, 11, 6, 2);
-      }
       break;
     }
     default: {
       const oneWay = kind.startsWith('ONEWAY');
       const reservoir = kind.startsWith('RESERVOIR');
-      pipeBody(g, kind, 0, oneWay ? '#b0a878' : PAL.pipe);
+      pipeBody(g, kind, 0);
       if (reservoir) {
-        // bulging tank in the middle
-        g.fillStyle = PAL.outline;
+        g.fillStyle = PAL.black;
+        g.beginPath();
+        g.arc(12, 12, 10, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = PAL.pipeBody;
         g.beginPath();
         g.arc(12, 12, 9, 0, Math.PI * 2);
         g.fill();
-        g.fillStyle = PAL.blue;
+        g.fillStyle = PAL.pipeMid;
         g.beginPath();
-        g.arc(12, 12, 8, 0, Math.PI * 2);
+        g.arc(11, 11, 7, 0, Math.PI * 2);
         g.fill();
-        g.fillStyle = '#9daede';
-        g.fillRect(8, 6, 6, 2);
+        g.fillStyle = PAL.pipeHi;
+        g.fillRect(8, 6, 5, 2);
       }
       for (const d of flangesFor(kind)) flange(g, d);
       if (oneWay) {
         const dir = (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'].indexOf(kind)) as Dir;
-        arrow(g, dir, PAL.outline);
+        arrow(g, dir, PAL.white);
       }
       break;
     }
+  }
+}
+
+/** Background plate tile with diagonal brace relief (the empty-cell look). */
+export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): void {
+  g.fillStyle = PAL.plate;
+  g.fillRect(x, y, CELL, CELL);
+  // bevel
+  g.fillStyle = PAL.plateHi;
+  g.fillRect(x, y, CELL, 1);
+  g.fillRect(x, y, 1, CELL);
+  g.fillStyle = PAL.plateLo;
+  g.fillRect(x, y + CELL - 1, CELL, 1);
+  g.fillRect(x + CELL - 1, y, 1, CELL);
+  // diagonal braces
+  g.strokeStyle = PAL.plateBrace;
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(x + 2, y + 2); g.lineTo(x + CELL - 2, y + CELL - 2);
+  g.moveTo(x + CELL - 2, y + 2); g.lineTo(x + 2, y + CELL - 2);
+  g.stroke();
+  g.strokeStyle = PAL.plateHi;
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(x + 2, y + 1); g.lineTo(x + CELL - 3, y + CELL - 4);
+  g.moveTo(x + CELL - 3, y + 1); g.lineTo(x + 2, y + CELL - 4);
+  g.stroke();
+  // corner rivets
+  g.fillStyle = PAL.plateLo;
+  for (const [rx, ry] of [[2, 2], [CELL - 4, 2], [2, CELL - 4], [CELL - 4, CELL - 4]] as const) {
+    g.fillRect(x + rx, y + ry, 2, 2);
   }
 }
 
@@ -256,8 +324,8 @@ export function pieceSprite(kind: PieceKind, startExit?: Dir): HTMLCanvasElement
 }
 
 /**
- * Draw flooz along a channel up to `progress`, as a fat green line with a
- * bright core — drawn over the pipe body so the pipe reads as filling up.
+ * Draw flooz along a channel up to `progress`: bright yellow with a dark
+ * edge, riding inside the pipe like the original's liquid.
  */
 export function drawFlooz(
   g: CanvasRenderingContext2D,
@@ -267,7 +335,7 @@ export function drawFlooz(
   reversed: boolean,
 ): void {
   if (progress <= 0) return;
-  const steps = Math.max(2, Math.ceil(16 * progress));
+  const steps = Math.max(2, Math.ceil(20 * progress));
   const pts: Array<{ x: number; y: number }> = [];
   for (let i = 0; i <= steps; i++) {
     const t = (i / steps) * progress;
@@ -281,15 +349,67 @@ export function drawFlooz(
     pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
     g.stroke();
   };
-  stroke(7, PAL.floozLo);
-  stroke(5, PAL.flooz);
-  stroke(2, PAL.floozHi);
-  // Reservoir bowl fills visually once the flow passes the middle.
+  stroke(9, PAL.floozEdge);
+  stroke(7, PAL.flooz);
+  stroke(3, PAL.floozHi);
   if (kind.startsWith('RESERVOIR') && progress > 0.35) {
     const f = Math.min(1, (progress - 0.35) / 0.4);
     g.fillStyle = PAL.flooz;
     g.beginPath();
-    g.arc(12, 12, 7 * f, 0, Math.PI * 2);
+    g.arc(12, 12, 8 * f, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = PAL.floozHi;
+    g.beginPath();
+    g.arc(10, 10, 3 * f, 0, Math.PI * 2);
     g.fill();
   }
+}
+
+/**
+ * Original mascot: a stubby hard-hat plumber clutching a wrench, drawn
+ * from scratch (not a recreation of any existing game character).
+ */
+export function drawMascot(g: CanvasRenderingContext2D, x: number, y: number): void {
+  g.save();
+  g.translate(x, y);
+  // boots
+  g.fillStyle = '#3a3026';
+  g.fillRect(6, 40, 8, 4);
+  g.fillRect(18, 40, 8, 4);
+  // overalls
+  g.fillStyle = '#2c50b4';
+  g.fillRect(7, 26, 18, 14);
+  g.fillStyle = '#1c3478';
+  g.fillRect(7, 38, 18, 2);
+  g.fillRect(14, 26, 4, 8);
+  // shirt + arms
+  g.fillStyle = '#c8442c';
+  g.fillRect(5, 22, 22, 6);
+  g.fillRect(3, 24, 4, 8);
+  g.fillRect(25, 24, 4, 8);
+  // hands
+  g.fillStyle = '#e8b088';
+  g.fillRect(3, 32, 4, 3);
+  g.fillRect(25, 32, 4, 3);
+  // head
+  g.fillStyle = '#e8b088';
+  g.fillRect(9, 10, 14, 12);
+  // eyes + grin
+  g.fillStyle = PAL.black;
+  g.fillRect(12, 14, 2, 3);
+  g.fillRect(18, 14, 2, 3);
+  g.fillRect(12, 19, 8, 1);
+  // hard hat
+  g.fillStyle = PAL.ledYellow;
+  g.fillRect(8, 5, 16, 6);
+  g.fillRect(6, 9, 20, 2);
+  g.fillStyle = '#b09010';
+  g.fillRect(6, 10, 20, 1);
+  // wrench in right hand
+  g.fillStyle = '#9aa1a8';
+  g.fillRect(27, 24, 3, 10);
+  g.fillRect(25, 22, 7, 3);
+  g.fillStyle = '#575d64';
+  g.fillRect(27, 23, 3, 1);
+  g.restore();
 }

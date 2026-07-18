@@ -109,11 +109,12 @@ export class BonusScreen {
     r.drawHud({
       score: this.totalScore + this.bonus.score,
       score2: null,
-      level: 'BONUS',
+      level: 'BN',
       pipesLeft: this.bonus.pipesFilled,
       countdownFrac: this.bonus.phase === 'arrange' ? this.bonus.timerMs / BONUS_TIMER_MS : 0,
-      countdownLabel: this.bonus.phase === 'arrange' ? 'DRAIN IN' : 'DRAINING',
-      hint: 'SLIDE PIECES INTO THE GAP — F DRAIN NOW — EVERY PIPE FILLED +100',
+      progressFrac: 1,
+      paused: false,
+      fastFlow: false,
     });
     r.present();
   }
