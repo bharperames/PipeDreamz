@@ -101,23 +101,23 @@ function strokePath(
 }
 
 /**
- * Fat rust pipe body shaded like a top-lit cylinder: black outline, deep
- * shadow toward the lower edge, broad hot band across the upper middle
- * with a pale glint — matching the chunky pipes of the reference era.
+ * Rust pipe body drawn as flat color bands, era style: black outline,
+ * dark shadow stripe along the lower/right wall, flat red body, lighter
+ * band toward the light. Roughly half the cell wide so elbows read as
+ * bent tubes rather than solid wedges.
  */
 function pipeBody(g: CanvasRenderingContext2D, kind: PieceKind, ch: number, gold = false): void {
-  strokePath(g, kind, ch, 18, PAL.black);
-  strokePath(g, kind, ch, 16, gold ? '#5c4a0e' : PAL.pipeDark);
-  strokePath(g, kind, ch, 13, gold ? '#a8841a' : PAL.pipeBody, 1);
-  strokePath(g, kind, ch, 9, gold ? '#d0aa30' : PAL.pipeMid, -1);
-  strokePath(g, kind, ch, 5, gold ? '#eccc60' : PAL.pipeHi, -2);
-  strokePath(g, kind, ch, 2, gold ? '#f8ecac' : PAL.pipeGlint, -3);
+  strokePath(g, kind, ch, 13, PAL.black);
+  strokePath(g, kind, ch, 11, gold ? '#5c4a0e' : PAL.pipeDark, 1);
+  strokePath(g, kind, ch, 8, gold ? '#a8841a' : PAL.pipeBody);
+  strokePath(g, kind, ch, 5, gold ? '#d0aa30' : PAL.pipeMid, -1);
+  strokePath(g, kind, ch, 2, gold ? '#eccc60' : PAL.pipeHi, -2);
 }
 
-/** Chunky grey collar flanges at the open cell edges. */
+/** Grey collar flanges at the open cell edges, wider than the pipe. */
 function flange(g: CanvasRenderingContext2D, side: Dir): void {
-  const w = 22;
-  const t = 5;
+  const w = 17;
+  const t = 4;
   const c = CELL / 2;
   const draw = (x: number, y: number, fw: number, fh: number, horizontal: boolean) => {
     g.fillStyle = PAL.black;
@@ -236,7 +236,18 @@ export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExi
     case 'START': {
       if (startExit !== undefined) {
         const spoutKind = (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'] as const)[startExit]!;
+        // Clip the spout to the exit half so pipe only pokes out one side.
+        g.save();
+        g.beginPath();
+        const c = CELL / 2;
+        if (startExit === 0) g.rect(0, 0, CELL, c);
+        if (startExit === 1) g.rect(c, 0, c, CELL);
+        if (startExit === 2) g.rect(0, c, CELL, c);
+        if (startExit === 3) g.rect(0, 0, c, CELL);
+        g.clip();
         pipeBody(g, spoutKind, 0);
+        g.restore();
+        flange(g, startExit);
       }
       housing(g);
       letter(g, 'S', 10, 9, PAL.ledYellow);
@@ -261,18 +272,18 @@ export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExi
       if (reservoir) {
         g.fillStyle = PAL.black;
         g.beginPath();
-        g.arc(12, 12, 10, 0, Math.PI * 2);
+        g.arc(12, 12, 9, 0, Math.PI * 2);
         g.fill();
         g.fillStyle = PAL.pipeBody;
         g.beginPath();
-        g.arc(12, 12, 9, 0, Math.PI * 2);
+        g.arc(12, 12, 8, 0, Math.PI * 2);
         g.fill();
         g.fillStyle = PAL.pipeMid;
         g.beginPath();
-        g.arc(11, 11, 7, 0, Math.PI * 2);
+        g.arc(11, 11, 6, 0, Math.PI * 2);
         g.fill();
         g.fillStyle = PAL.pipeHi;
-        g.fillRect(8, 6, 5, 2);
+        g.fillRect(8, 7, 4, 2);
       }
       for (const d of flangesFor(kind)) flange(g, d);
       if (oneWay) {
@@ -304,20 +315,18 @@ export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): vo
   // recessed face
   g.fillStyle = PAL.plateFace;
   g.fillRect(x + 3, y + 3, CELL - 6, CELL - 6);
-  g.fillStyle = PAL.plateLo;
-  g.fillRect(x + 3, y + 3, CELL - 6, 1);
-  g.fillRect(x + 3, y + 3, 1, CELL - 6);
-  // thin diagonal braces: light line with dark shadow line beside it
-  g.strokeStyle = PAL.plateHi;
+  // thin diagonal braces: dark shadow line with light line on top,
+  // symmetric about the cell center
   g.lineWidth = 1;
-  g.beginPath();
-  g.moveTo(x + 5.5, y + 5.5); g.lineTo(x + CELL - 5.5, y + CELL - 5.5);
-  g.moveTo(x + CELL - 5.5, y + 5.5); g.lineTo(x + 5.5, y + CELL - 5.5);
-  g.stroke();
   g.strokeStyle = PAL.plateBrace;
   g.beginPath();
-  g.moveTo(x + 6.5, y + 5.5); g.lineTo(x + CELL - 4.5, y + CELL - 6.5);
-  g.moveTo(x + CELL - 4.5, y + 6.5); g.lineTo(x + 5.5, y + CELL - 4.5);
+  g.moveTo(x + 6.5, y + 6.5); g.lineTo(x + CELL - 5.5, y + CELL - 5.5);
+  g.moveTo(x + CELL - 6.5, y + 6.5); g.lineTo(x + 5.5, y + CELL - 5.5);
+  g.stroke();
+  g.strokeStyle = PAL.plateHi;
+  g.beginPath();
+  g.moveTo(x + 5.5, y + 5.5); g.lineTo(x + CELL - 6.5, y + CELL - 6.5);
+  g.moveTo(x + CELL - 5.5, y + 5.5); g.lineTo(x + 6.5, y + CELL - 6.5);
   g.stroke();
   // corner pads at the brace ends
   g.fillStyle = PAL.plate;
@@ -370,14 +379,14 @@ export function drawFlooz(
     pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
     g.stroke();
   };
-  stroke(11, PAL.floozEdge);
-  stroke(8, PAL.flooz);
-  stroke(3, PAL.floozHi);
+  stroke(7, PAL.floozEdge);
+  stroke(5, PAL.flooz);
+  stroke(2, PAL.floozHi);
   if (kind.startsWith('RESERVOIR') && progress > 0.35) {
     const f = Math.min(1, (progress - 0.35) / 0.4);
     g.fillStyle = PAL.flooz;
     g.beginPath();
-    g.arc(12, 12, 8 * f, 0, Math.PI * 2);
+    g.arc(12, 12, 7 * f, 0, Math.PI * 2);
     g.fill();
     g.fillStyle = PAL.floozHi;
     g.beginPath();
