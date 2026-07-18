@@ -4,7 +4,7 @@ import { CELL, drawFlooz, drawMascot, drawPlate, PAL, pieceSprite } from './spri
 
 const HUD_H = 20;
 const LEFT_W = 40;
-const BAR_W = 12;
+const BAR_W = 16;
 const GAP = 4;
 
 interface Popup {
@@ -288,13 +288,25 @@ export class Renderer2D {
 
   drawHud(s: HudState): void {
     const g = this.g;
-    // red-brown bar with metal trim
-    g.fillStyle = PAL.frameLo;
-    g.fillRect(0, 0, this.bufW, HUD_H);
-    g.fillStyle = PAL.hudBar;
-    g.fillRect(2, 2, this.bufW - 4, HUD_H - 4);
+    // red-brown bar with metal trim and angled end caps
+    const cap = 9;
+    const bar = (inset: number, color: string) => {
+      g.fillStyle = color;
+      g.beginPath();
+      g.moveTo(2 + cap + inset, 1 + inset);
+      g.lineTo(this.bufW - 2 - cap - inset, 1 + inset);
+      g.lineTo(this.bufW - 2 - inset * 1.5, HUD_H / 2);
+      g.lineTo(this.bufW - 2 - cap - inset, HUD_H - 1 - inset);
+      g.lineTo(2 + cap + inset, HUD_H - 1 - inset);
+      g.lineTo(2 + inset * 1.5, HUD_H / 2);
+      g.closePath();
+      g.fill();
+    };
+    bar(0, PAL.frame);
+    bar(1, PAL.frameLo);
+    bar(2, PAL.hudBar);
     g.fillStyle = PAL.hudBarHi;
-    g.fillRect(2, 2, this.bufW - 4, 1);
+    g.fillRect(2 + cap, 3, this.bufW - 4 - 2 * cap, 1);
 
     const digY = 5;
     const labY = 6;
@@ -320,28 +332,30 @@ export class Renderer2D {
     }
     this.label('L:', lNumX - 15, labY, PAL.white);
 
-    // right-hand vertical flooz timer bar
+    // right-hand vertical flooz timer bar: rounded metal frame, fat fill
     const bx = this.bufW - GAP - BAR_W;
     const by = HUD_H + GAP;
     const bh = this.bufH - by - GAP;
-    g.fillStyle = PAL.frameLo;
-    g.fillRect(bx, by, BAR_W, bh);
     g.fillStyle = PAL.frame;
-    g.fillRect(bx + 1, by + 1, BAR_W - 2, bh - 2);
+    g.fillRect(bx + 1, by, BAR_W - 2, bh);
+    g.fillRect(bx, by + 1, BAR_W, bh - 2);
+    g.fillStyle = PAL.frameLo;
+    g.fillRect(bx + BAR_W - 2, by + 1, 1, bh - 2);
+    g.fillRect(bx + 1, by + bh - 2, BAR_W - 2, 1);
     g.fillStyle = PAL.black;
     g.fillRect(bx + 3, by + 3, BAR_W - 6, bh - 6);
     if (s.countdownFrac > 0) {
-      const fh = Math.round((bh - 8) * Math.min(1, s.countdownFrac));
+      const fh = Math.round((bh - 10) * Math.min(1, s.countdownFrac));
       g.fillStyle = PAL.red;
-      g.fillRect(bx + 4, by + 4 + (bh - 8 - fh), BAR_W - 8, fh);
+      g.fillRect(bx + 5, by + 5 + (bh - 10 - fh), BAR_W - 10, fh);
       g.fillStyle = PAL.hudBarHi;
-      g.fillRect(bx + 4, by + 4 + (bh - 8 - fh), 1, fh);
+      g.fillRect(bx + 5, by + 5 + (bh - 10 - fh), 1, fh);
     } else {
-      const fh = Math.round((bh - 8) * Math.min(1, s.progressFrac));
+      const fh = Math.round((bh - 10) * Math.min(1, s.progressFrac));
       g.fillStyle = PAL.flooz;
-      g.fillRect(bx + 4, by + 4 + (bh - 8 - fh), BAR_W - 8, fh);
+      g.fillRect(bx + 5, by + 5 + (bh - 10 - fh), BAR_W - 10, fh);
       g.fillStyle = PAL.floozHi;
-      g.fillRect(bx + 4, by + 4 + (bh - 8 - fh), 1, fh);
+      g.fillRect(bx + 5, by + 5 + (bh - 10 - fh), 1, fh);
     }
 
     if (s.fastFlow && s.countdownFrac <= 0) {

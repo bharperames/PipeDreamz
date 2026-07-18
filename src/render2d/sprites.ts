@@ -13,20 +13,21 @@ export const CELL = 24;
 export const PAL = {
   black: '#0c0c0e',
   // plates
-  plate: '#9ba1a9',
-  plateFace: '#8f959d',
-  plateHi: '#c9cfd6',
-  plateLo: '#5b6168',
-  plateBrace: '#787e86',
-  plateGroove: '#41464c',
-  obstacle: '#5a6068',
+  plate: '#8e949c',
+  plateFace: '#7f858d',
+  plateHi: '#c2c8cf',
+  plateLo: '#42474d',
+  plateBrace: '#9aa0a8',
+  plateBraceLo: '#3f444a',
+  plateGroove: '#33383e',
+  obstacle: '#4e545c',
   obstacleHi: '#6d747d',
-  obstacleLo: '#3a3f45',
+  obstacleLo: '#2e3238',
   // pipes
-  pipeDark: '#4a100a',
-  pipeBody: '#9c2c14',
-  pipeMid: '#cc5024',
-  pipeHi: '#e88848',
+  pipeDark: '#3a0c08',
+  pipeBody: '#8e2410',
+  pipeMid: '#c84c20',
+  pipeHi: '#f09050',
   pipeGlint: '#f8c088',
   collar: '#b8bec4',
   collarLo: '#6b7178',
@@ -108,10 +109,10 @@ function strokePath(
  */
 function pipeBody(g: CanvasRenderingContext2D, kind: PieceKind, ch: number, gold = false): void {
   strokePath(g, kind, ch, 13, PAL.black);
-  strokePath(g, kind, ch, 11, gold ? '#5c4a0e' : PAL.pipeDark, 1);
-  strokePath(g, kind, ch, 8, gold ? '#a8841a' : PAL.pipeBody);
-  strokePath(g, kind, ch, 5, gold ? '#d0aa30' : PAL.pipeMid, -1);
-  strokePath(g, kind, ch, 2, gold ? '#eccc60' : PAL.pipeHi, -2);
+  strokePath(g, kind, ch, 11, gold ? '#4c3c0a' : PAL.pipeDark, 1);
+  strokePath(g, kind, ch, 8, gold ? '#9c7814' : PAL.pipeBody, 1);
+  strokePath(g, kind, ch, 5, gold ? '#cca428' : PAL.pipeMid, -1);
+  strokePath(g, kind, ch, 2, gold ? '#f0d060' : PAL.pipeHi, -2);
 }
 
 /** Grey collar flanges at the open cell edges, wider than the pipe. */
@@ -178,16 +179,23 @@ function arrow(g: CanvasRenderingContext2D, dir: Dir, color: string): void {
  * plate rather than filling the whole cell, like the reference's S block.
  */
 function housing(g: CanvasRenderingContext2D): void {
+  // rounded valve block with corner bolts
   g.fillStyle = PAL.black;
-  g.fillRect(3, 3, 18, 18);
+  g.fillRect(4, 3, 16, 18);
+  g.fillRect(3, 4, 18, 16);
   g.fillStyle = PAL.housing;
-  g.fillRect(4, 4, 16, 16);
+  g.fillRect(5, 4, 14, 16);
+  g.fillRect(4, 5, 16, 14);
   g.fillStyle = PAL.housingHi;
-  g.fillRect(4, 4, 16, 2);
-  g.fillRect(4, 4, 2, 16);
+  g.fillRect(5, 4, 14, 2);
+  g.fillRect(4, 5, 2, 14);
   g.fillStyle = '#1c3478';
-  g.fillRect(18, 6, 2, 14);
-  g.fillRect(6, 18, 14, 2);
+  g.fillRect(18, 6, 2, 13);
+  g.fillRect(6, 18, 13, 2);
+  g.fillStyle = '#8ea6ec';
+  for (const [bx, by] of [[5, 5], [18, 5], [5, 18], [18, 18]] as const) {
+    g.fillRect(bx, by, 1, 1);
+  }
 }
 
 /** Chunky 5x7 letter for S / E labels. */
@@ -315,26 +323,37 @@ export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): vo
   // recessed face
   g.fillStyle = PAL.plateFace;
   g.fillRect(x + 3, y + 3, CELL - 6, CELL - 6);
-  // thin diagonal braces: dark shadow line with light line on top,
-  // symmetric about the cell center
-  g.lineWidth = 1;
+  g.fillStyle = PAL.plateLo;
+  g.fillRect(x + 3, y + 3, CELL - 6, 1);
+  // heavy raised X ridges spanning the face, with drop shadow and lit top
+  const diag = (x0: number, y0: number, x1: number, y1: number) => {
+    g.beginPath();
+    g.moveTo(x + x0, y + y0);
+    g.lineTo(x + x1, y + y1);
+    g.stroke();
+  };
+  g.lineWidth = 4;
+  g.strokeStyle = PAL.plateBraceLo;
+  diag(5, 6, CELL - 4, CELL - 3);
+  diag(CELL - 5, 6, 4, CELL - 3);
+  g.lineWidth = 3;
   g.strokeStyle = PAL.plateBrace;
-  g.beginPath();
-  g.moveTo(x + 6.5, y + 6.5); g.lineTo(x + CELL - 5.5, y + CELL - 5.5);
-  g.moveTo(x + CELL - 6.5, y + 6.5); g.lineTo(x + 5.5, y + CELL - 5.5);
-  g.stroke();
+  diag(4.5, 4.5, CELL - 4.5, CELL - 4.5);
+  diag(CELL - 4.5, 4.5, 4.5, CELL - 4.5);
+  g.lineWidth = 1;
   g.strokeStyle = PAL.plateHi;
-  g.beginPath();
-  g.moveTo(x + 5.5, y + 5.5); g.lineTo(x + CELL - 6.5, y + CELL - 6.5);
-  g.moveTo(x + CELL - 5.5, y + 5.5); g.lineTo(x + 6.5, y + CELL - 6.5);
-  g.stroke();
-  // corner pads at the brace ends
-  g.fillStyle = PAL.plate;
-  for (const [rx, ry] of [[3, 3], [CELL - 7, 3], [3, CELL - 7], [CELL - 7, CELL - 7]] as const) {
-    g.fillRect(x + rx, y + ry, 4, 4);
-    g.fillStyle = PAL.plateLo;
-    g.fillRect(x + rx + 3, y + ry + 3, 1, 1);
+  diag(4.5, 3.5, CELL - 5.5, CELL - 6.5);
+  diag(CELL - 4.5, 3.5, 5.5, CELL - 5.5);
+  // corner pads bolting the braces down
+  for (const [rx, ry] of [[2, 2], [CELL - 7, 2], [2, CELL - 7], [CELL - 7, CELL - 7]] as const) {
     g.fillStyle = PAL.plate;
+    g.fillRect(x + rx, y + ry, 5, 5);
+    g.fillStyle = PAL.plateHi;
+    g.fillRect(x + rx, y + ry, 5, 1);
+    g.fillRect(x + rx, y + ry, 1, 5);
+    g.fillStyle = PAL.plateLo;
+    g.fillRect(x + rx, y + ry + 4, 5, 1);
+    g.fillRect(x + rx + 4, y + ry, 1, 5);
   }
 }
 
