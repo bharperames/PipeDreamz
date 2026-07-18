@@ -1,0 +1,291 @@
+:root {
+  --green: #35d048;
+  --amber: #e8c34a;
+  --red: #e04040;
+  --panel: rgba(12, 16, 20, 0.88);
+  --border: #3d4654;
+  font-family: 'Courier New', ui-monospace, monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #101418;
+  color: #e8e6e0;
+  user-select: none;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+#scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.12) 3px
+  );
+  z-index: 40;
+}
+
+#scanlines.off {
+  display: none;
+}
+
+/* ---------- HUD ---------- */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  display: none;
+}
+
+#hud.visible {
+  display: block;
+}
+
+.hud-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: linear-gradient(to bottom, rgba(8, 10, 13, 0.9), transparent);
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.hud-stat b {
+  color: var(--amber);
+  font-size: 22px;
+  margin-left: 6px;
+}
+
+.hud-stat .p2 {
+  color: #6ab7ff;
+}
+
+.hud-distance b {
+  color: var(--green);
+}
+
+.hud-distance.met b {
+  color: var(--amber);
+}
+
+.hud-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  background: linear-gradient(to top, rgba(8, 10, 13, 0.9), transparent);
+  font-size: 13px;
+  color: #9aa3ad;
+}
+
+.countdown-wrap {
+  width: 240px;
+}
+
+.countdown-label {
+  font-size: 12px;
+  margin-bottom: 3px;
+  color: #9aa3ad;
+}
+
+.countdown-bar {
+  height: 12px;
+  border: 1px solid var(--border);
+  background: #171c22;
+}
+
+.countdown-bar > div {
+  height: 100%;
+  background: var(--green);
+  transition: width 0.1s linear;
+}
+
+.countdown-bar.urgent > div {
+  background: var(--red);
+}
+
+/* ---------- Score popups ---------- */
+#popups {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.score-popup {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-weight: bold;
+  font-size: 18px;
+  color: var(--green);
+  text-shadow: 0 1px 4px #000;
+}
+
+.score-popup--loss {
+  color: var(--red);
+}
+
+.score-popup--big {
+  color: var(--amber);
+  font-size: 24px;
+}
+
+/* ---------- Menus ---------- */
+#menu {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#menu.visible {
+  display: flex;
+}
+
+.panel {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 34px 48px;
+  text-align: center;
+  min-width: 420px;
+  box-shadow: 0 0 60px rgba(53, 208, 72, 0.12);
+}
+
+.title-logo {
+  font-size: 56px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  color: var(--green);
+  text-shadow: 0 0 24px rgba(53, 208, 72, 0.5), 3px 3px 0 #14501d;
+  margin-bottom: 6px;
+}
+
+.title-sub {
+  color: #9aa3ad;
+  margin-bottom: 30px;
+  font-size: 14px;
+}
+
+.menu-list button {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+  font: inherit;
+  font-size: 18px;
+  letter-spacing: 2px;
+  background: #171c22;
+  color: #e8e6e0;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.menu-list button:hover,
+.menu-list button.selected {
+  background: #223028;
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.menu-note {
+  margin-top: 22px;
+  font-size: 12px;
+  color: #9aa3ad;
+  line-height: 1.7;
+}
+
+h2.panel-heading {
+  font-size: 28px;
+  letter-spacing: 3px;
+  color: var(--amber);
+  margin-bottom: 18px;
+}
+
+.tally {
+  text-align: left;
+  font-size: 17px;
+  margin: 14px 0 22px;
+  line-height: 2;
+}
+
+.tally .num {
+  float: right;
+  color: var(--amber);
+}
+
+.tally .neg {
+  color: var(--red);
+}
+
+.tally .total {
+  border-top: 1px solid var(--border);
+  font-weight: bold;
+}
+
+.blink {
+  animation: blink 1.1s steps(2) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+table.scores {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 16px;
+}
+
+table.scores td,
+table.scores th {
+  padding: 4px 10px;
+  text-align: left;
+}
+
+table.scores td.num {
+  text-align: right;
+  color: var(--amber);
+}
+
+.name-entry {
+  font-size: 42px;
+  letter-spacing: 18px;
+  color: var(--green);
+  margin: 18px 0;
+}
+
+.name-entry .active {
+  text-decoration: underline;
+  color: var(--amber);
+}

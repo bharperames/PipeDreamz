@@ -1,0 +1,271 @@
+import { GameRound } from '../../core/round';
+import { mulberry32 } from '../../core/rng';
+import { GameEvent, GameMode, GridPos, LevelDef, PlayerId, RoundResult } from '../../core/types';
+import { Renderer2D } from '../../render2d/Renderer2D';
+import { PAL } from '../../render2d/sprites';
+import { Sfx } from '../../audio/Sfx';
+import {
+  KEY_ALT_DISPENSER,
+  KEY_FAST,
+  KEY_PAUSE,
+  KEY_QUIT,
+  P1_KEYS,
+  P2_KEYS,
+} from '../../input/bindings';
+
+const SIM_DT = 1000 / 120;
+
+export interface PlayingCallbacks {
+  onRoundOver(result: RoundResult): void;
+  onQuit(): void;
+}
+
+export class PlayingScreen {
+  readonly round: GameRound;
+  private cursorCells: GridPos[] = [];
+  private accumulator = 0;
+  private paused = false;
+  private endedAtMs: number | null = null;
+  private renderTime = 0;
+  private shiftHeld = false;
+
+  constructor(
+    private renderer: Renderer2D,
+    private sfx: Sfx,
+    level: LevelDef,
+    mode: GameMode,
+    seed: number,
+    training: boolean,
+    private callbacks: PlayingCallbacks,
+    private totals: [number, number],
+  ) {
+    this.round = new GameRound(
+      {
+        level,
+        mode,
+        seed,
+        players: mode === 'competitive' ? 2 : 1,
+        timeScale: training ? 1.75 : 1,
+      },
+      mulberry32(seed),
+    );
+    renderer.setBoardSize(level.gridW, level.gridH);
+    const players = mode === 'competitive' ? 2 : 1;
+    for (let p = 0; p < players; p++) this.cursorCells.push({ x: 4 + p, y: 3 });
+  }
+
+  // ---------- input ----------
+
+  onKeyDown(e: KeyboardEvent): void {
+    if (KEY_QUIT.includes(e.code)) return this.callbacks.onQuit();
+    if (KEY_PAUSE.includes(e.code)) {
+      this.paused = !this.paused;
+      return;
+    }
+    if (this.paused || this.round.over) return;
+    if (KEY_FAST.includes(e.code)) {
+      this.round.apply({ type: 'fastForward', player: 0 });
+      return;
+    }
+    if (KEY_ALT_DISPENSER.includes(e.code)) this.shiftHeld = true;
+
+    const keysets = this.round.mode === 'competitive' ? [P1_KEYS, P2_KEYS] : [P1_KEYS];
+    keysets.forEach((keys, p) => {
+      const player = p as PlayerId;
+      const cell = this.cursorCells[player]!;
+      let moved = false;
+      if (keys.up.includes(e.code)) (cell.y = Math.max(0, cell.y - 1)), (moved = true);
+      if (keys.down.includes(e.code))
+        (cell.y = Math.min(this.round.level.gridH - 1, cell.y + 1)), (moved = true);
+      if (keys.left.includes(e.code)) (cell.x = Math.max(0, cell.x - 1)), (moved = true);
+      if (keys.right.includes(e.code))
+        (cell.x = Math.min(this.round.level.gridW - 1, cell.x + 1)), (moved = true);
+      if (moved) {
+        e.preventDefault();
+        this.sfx.play('move');
+      }
+      if (keys.place.includes(e.code)) {
+        e.preventDefault();
+        this.place(player, { ...cell }, this.shiftHeld ? 1 : 0);
+      }
+    });
+  }
+
+  onKeyUp(e: KeyboardEvent): void {
+    if (KEY_ALT_DISPENSER.includes(e.code)) this.shiftHeld = false;
+  }
+
+  onMouseMove(e: MouseEvent): void {
+    const cell = this.renderer.screenToCell(e.clientX, e.clientY);
+    if (!this.round.grid.inBounds(cell)) return;
+    this.cursorCells[0] = cell;
+  }
+
+  onMouseDown(e: MouseEvent): void {
+    if (this.paused || this.round.over) return;
+    const cell = this.renderer.screenToCell(e.clientX, e.clientY);
+    if (!this.round.grid.inBounds(cell)) return;
+    const dispenser = e.button === 2 || this.shiftHeld ? 1 : 0;
+    this.place(0, cell, dispenser as 0 | 1);
+  }
+
+  private place(player: PlayerId, pos: GridPos, dispenser: 0 | 1): void {
+    this.handleEvents(
+      this.round.apply({
+        type: 'place',
+        player,
+        pos,
+        dispenser: this.round.mode === 'expert' ? dispenser : 0,
+      }),
+    );
+  }
+
+  // ---------- frame ----------
+
+  update(dtMs: number): void {
+    this.renderTime += dtMs;
+    if (!this.paused) {
+      this.accumulator += Math.min(dtMs, 100);
+      while (this.accumulator >= SIM_DT) {
+        this.accumulator -= SIM_DT;
+        this.handleEvents(this.round.tick(SIM_DT));
+      }
+    }
+    this.draw(dtMs);
+
+    if (this.round.over && this.endedAtMs === null) this.endedAtMs = this.renderTime;
+    if (this.endedAtMs !== null && this.renderTime - this.endedAtMs > 1400) {
+      this.callbacks.onRoundOver(this.round.result!);
+      this.endedAtMs = Infinity;
+    }
+  }
+
+  private draw(dtMs: number): void {
+    const r = this.renderer;
+    const round = this.round;
+    r.begin();
+    r.drawBoard(round.level);
+
+    // Pieces + settled flooz
+    round.grid.forEach((piece, pos) => {
+      const materializing = piece.readyAtMs > round.flow.nowMs;
+      r.drawPieceAt(pos.x, pos.y, piece.kind, {
+        alpha: materializing ? 0.45 : 1,
+        startExit: piece.kind === 'START' ? round.level.start.exit : undefined,
+      });
+      piece.channels.forEach((ch, i) => {
+        if (ch.filled) {
+          r.drawFloozAt(pos.x, pos.y, piece.kind, i, 1, this.reversed(piece.kind, i, ch.fillEntry));
+        }
+      });
+    });
+
+    // Live fill head
+    const head = round.flow.head;
+    if (head && round.flow.state === 'flowing') {
+      const piece = round.grid.get(head.pos)!;
+      r.drawFloozAt(
+        head.pos.x,
+        head.pos.y,
+        piece.kind,
+        head.channelIdx,
+        round.flow.segmentProgress(),
+        this.reversed(piece.kind, head.channelIdx, head.entryDir),
+      );
+    }
+
+    // Cursors
+    this.cursorCells.forEach((cell, p) => {
+      const piece = round.grid.get(cell);
+      const valid = !piece || (!piece.fixed && !piece.channels.some((c) => c.filled));
+      r.drawCursorAt(cell.x, cell.y, valid, p === 0 ? PAL.white : '#7db6f0');
+    });
+
+    r.drawDispensers(round.queues);
+    r.updateOverlays(dtMs);
+
+    const mode = round.mode;
+    r.drawHud({
+      score: this.totals[0] + round.scores[0],
+      score2: mode === 'competitive' ? this.totals[1] + round.scores[1] : null,
+      level: round.level.id,
+      pipesLeft: round.level.distance - round.flow.pipesFilled,
+      countdownFrac:
+        round.flow.state === 'countdown' ? round.flow.countdownMs / round.level.delayMs : 0,
+      countdownLabel:
+        round.flow.state === 'countdown'
+          ? 'FLOOZ IN'
+          : round.flow.fastForward
+            ? 'FAST x2'
+            : 'FLOWING',
+      hint: this.paused
+        ? '*** PAUSED — P TO RESUME ***'
+        : mode === 'competitive'
+          ? 'P1 ARROWS+SPACE  P2 WASD+Q  F FAST'
+          : mode === 'expert'
+            ? 'CLICK=BOTTOM  RCLICK/SHIFT=TOP  F FAST'
+            : 'CLICK/SPACE PLACE  F FAST  P PAUSE  ESC QUIT',
+    });
+    r.present();
+  }
+
+  /** Whether the flow entered from the far end of the sprite's path. */
+  private reversed(kind: string, channelIdx: number, entry: number | null): boolean {
+    if (entry === null) return false;
+    switch (kind) {
+      case 'H': case 'RESERVOIR_H': return entry === 1;
+      case 'V': case 'RESERVOIR_V': return entry === 2;
+      case 'NE': return entry === 1;
+      case 'NW': return entry === 3;
+      case 'SE': return entry === 1;
+      case 'SW': return entry === 3;
+      case 'X': case 'BONUS': return channelIdx === 0 ? entry === 2 : entry === 1;
+      default: return false;
+    }
+  }
+
+  private handleEvents(events: GameEvent[]): void {
+    for (const e of events) {
+      switch (e.type) {
+        case 'piecePlaced':
+          if (e.wasReplacement) {
+            this.sfx.play('bomb');
+            this.renderer.burst(e.pos, '#d8d0b8');
+            this.renderer.addPopup(e.pos, '-50', 'loss');
+          } else {
+            this.sfx.play('place');
+          }
+          break;
+        case 'flowStarted':
+          this.sfx.play('reservoir');
+          break;
+        case 'segmentFilled':
+          if (e.points > 0) {
+            this.sfx.play('fill', Math.min(24, e.pipesFilled));
+            this.renderer.addPopup(e.pos, `+${e.points}`, e.points >= 500 ? 'big' : 'gain');
+          }
+          break;
+        case 'crossCompleted':
+          this.sfx.play('cross');
+          this.renderer.addPopup(e.pos, `+${e.points}`, 'big');
+          break;
+        case 'distanceMet':
+          this.sfx.play('distance');
+          break;
+        case 'endReached':
+          this.sfx.play('end');
+          break;
+        case 'spill':
+          this.sfx.play('spill');
+          this.renderer.burst(e.pos, PAL.flooz, 20);
+          break;
+        case 'roundOver':
+          break;
+      }
+    }
+  }
+
+  dispose(): void {
+    this.renderer.clearOverlays();
+  }
+}

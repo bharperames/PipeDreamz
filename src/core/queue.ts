@@ -1,0 +1,55 @@
+import { Rng } from './rng';
+import { PieceWeights, PlaceableKind, PLACEABLE_KINDS } from './types';
+
+export const DEFAULT_WEIGHTS: PieceWeights = {
+  H: 1,
+  V: 1,
+  NE: 1,
+  NW: 1,
+  SE: 1,
+  SW: 1,
+  X: 1,
+};
+
+/**
+ * A dispenser of upcoming pipe pieces. The bottom (index 0) piece is the
+ * next one that must be placed; taking it shifts the queue down and a new
+ * random piece appears at the top.
+ */
+export class DispenserQueue {
+  private items: PlaceableKind[] = [];
+
+  constructor(
+    private rng: Rng,
+    readonly depth: number,
+    private weights: PieceWeights = DEFAULT_WEIGHTS,
+  ) {
+    for (let i = 0; i < depth; i++) this.items.push(this.roll());
+  }
+
+  private roll(): PlaceableKind {
+    let total = 0;
+    for (const k of PLACEABLE_KINDS) total += this.weights[k];
+    let r = this.rng.next() * total;
+    for (const k of PLACEABLE_KINDS) {
+      r -= this.weights[k];
+      if (r < 0) return k;
+    }
+    return 'X';
+  }
+
+  /** Bottom-first view of the queue. */
+  peek(): ReadonlyArray<PlaceableKind> {
+    return this.items;
+  }
+
+  next(): PlaceableKind {
+    return this.items[0]!;
+  }
+
+  take(): PlaceableKind {
+    const out = this.items.shift()!;
+    this.items.push(this.roll());
+    return out;
+  }
+}
