@@ -74,6 +74,11 @@ export const PAL = {
 export function pathPoint(kind: PieceKind, channelIdx: number, t: number): { x: number; y: number } {
   const c = CELL / 2;
   const lerp = (a: number, b: number) => a + (b - a) * t;
+  // Elbows are smooth quarter arcs, matching the blueprint reference.
+  const arc = (cx: number, cy: number, a0: number, a1: number) => {
+    const a = a0 + (a1 - a0) * t;
+    return { x: cx + c * Math.cos(a), y: cy + c * Math.sin(a) };
+  };
   switch (kind) {
     case 'H': case 'RESERVOIR_H': case 'ONEWAY_E':
       return { x: lerp(0, CELL), y: c };
@@ -83,21 +88,10 @@ export function pathPoint(kind: PieceKind, channelIdx: number, t: number): { x: 
       return { x: c, y: lerp(0, CELL) };
     case 'ONEWAY_N':
       return { x: c, y: lerp(CELL, 0) };
-
-    // Elbows: two straight segments meeting at (c, c)
-    case 'NE': // North → East
-      if (t <= 0.5) return { x: c, y: t * 2 * c };
-      return { x: c + (t - 0.5) * 2 * c, y: c };
-    case 'NW': // North → West
-      if (t <= 0.5) return { x: c, y: t * 2 * c };
-      return { x: c - (t - 0.5) * 2 * c, y: c };
-    case 'SE': // South → East
-      if (t <= 0.5) return { x: c, y: CELL - t * 2 * c };
-      return { x: c + (t - 0.5) * 2 * c, y: c };
-    case 'SW': // South → West
-      if (t <= 0.5) return { x: c, y: CELL - t * 2 * c };
-      return { x: c - (t - 0.5) * 2 * c, y: c };
-
+    case 'NE': return arc(CELL, 0, Math.PI, Math.PI / 2);
+    case 'NW': return arc(0, 0, 0, Math.PI / 2);
+    case 'SE': return arc(CELL, CELL, Math.PI, 1.5 * Math.PI);
+    case 'SW': return arc(0, CELL, 0, -Math.PI / 2);
     case 'X': case 'BONUS':
       return channelIdx === 0 ? { x: c, y: lerp(0, CELL) } : { x: lerp(0, CELL), y: c };
     default:
@@ -424,6 +418,207 @@ export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): vo
 
 const spriteCache = new Map<string, HTMLCanvasElement>();
 
+// ---------- blueprint-spec glass & brass pipes ----------
+// Geometry per the blueprint reference: tube outer ~26px on a 48px cell,
+// brass collars 32px wide sitting ON the cell edge (each piece draws an
+// 8px-deep half; two adjacent pieces compose the full double-ring joint,
+// which is what makes connections flush by construction). Shading is a
+// smooth ramp with white specular streaks, not flat bands.
+
+type Profile = ReadonlyArray<readonly [number, string]>;
+
+const GLASS_EMPTY: Profile = [
+  [26, '#14171c'],
+  [23, '#7e8a96'],
+  [20, '#a9b4c0'],
+  [16, '#c9d2da'],
+  [12, '#e2e8ee'],
+  [8, '#f1f5f8'],
+  [4, '#fbfdfe'],
+  [2, '#ffffff'],
+];
+
+const GLASS_FILLED: Profile = [
+  [26, '#0d2410'],
+  [23, '#2b8f28'],
+  [20, '#3fbe33'],
+  [16, '#66dd4e'],
+  [12, '#96f078'],
+  [8, '#c4fca6'],
+  [4, '#e8ffd6'],
+  [2, '#ffffff'],
+];
+
+const GLASS_GOLD: Profile = [
+  [26, '#1c1608'],
+  [23, '#8a6c1e'],
+  [20, '#b6922e'],
+  [16, '#d4b04a'],
+  [12, '#e8ca6e'],
+  [8, '#f4df96'],
+  [4, '#fbf0c4'],
+  [2, '#ffffff'],
+];
+
+function glassChannel(
+  g: CanvasRenderingContext2D,
+  kind: PieceKind,
+  ch: number,
+  profile: Profile,
+): void {
+  g.save();
+  g.lineCap = 'butt';
+  g.lineJoin = 'round';
+  for (const [w, color] of profile) {
+    g.strokeStyle = color;
+    g.lineWidth = w;
+    g.beginPath();
+    const steps = 24;
+    for (let i = 0; i <= steps; i++) {
+      const p = pathPoint(kind, ch, i / steps);
+      if (i === 0) g.moveTo(p.x, p.y);
+      else g.lineTo(p.x, p.y);
+    }
+    g.stroke();
+  }
+  g.restore();
+}
+
+/**
+ * Half-collar at a cell edge: 32px wide, 8px deep, riveted brass. The
+ * neighboring piece's half completes the double-ring joint of the spec.
+ */
+function brassCollar(g: CanvasRenderingContext2D, side: Dir): void {
+  const w = 32;
+  const t = 8;
+  const c = CELL / 2;
+  // Brass ramp across the collar depth (outline, shadow, body, shine, body)
+  const bands: ReadonlyArray<readonly [number, string]> = [
+    [1, '#17130a'],
+    [1, '#6a4d12'],
+    [2, '#caa23c'],
+    [2, '#ecd06e'],
+    [1, '#b98a2c'],
+    [1, '#7a5a14'],
+  ];
+  const horizontal = side === 0 || side === 2;
+  g.save();
+  // Position: rows/cols run from the cell edge inward.
+  for (let i = 0, off = 0; i < bands.length; i++) {
+    const [bw, color] = bands[i]!;
+    g.fillStyle = color;
+    if (horizontal) {
+      const y = side === 0 ? off : CELL - off - bw;
+      g.fillRect(c - w / 2, y, w, bw);
+    } else {
+      const x = side === 3 ? off : CELL - off - bw;
+      g.fillRect(x, c - w / 2, bw, w);
+    }
+    off += bw;
+  }
+  // outline caps on the collar sides + rivets
+  g.fillStyle = '#17130a';
+  if (horizontal) {
+    const y = side === 0 ? 0 : CELL - t;
+    g.fillRect(c - w / 2 - 1, y, 1, t);
+    g.fillRect(c + w / 2, y, 1, t);
+    g.fillStyle = '#574010';
+    g.fillRect(c - 10, side === 0 ? 3 : CELL - 5, 2, 2);
+    g.fillRect(c + 8, side === 0 ? 3 : CELL - 5, 2, 2);
+  } else {
+    const x = side === 3 ? 0 : CELL - t;
+    g.fillRect(x, c - w / 2 - 1, t, 1);
+    g.fillRect(x, c + w / 2, t, 1);
+    g.fillStyle = '#574010';
+    g.fillRect(side === 3 ? 3 : CELL - 5, c - 10, 2, 2);
+    g.fillRect(side === 3 ? 3 : CELL - 5, c + 8, 2, 2);
+  }
+  g.restore();
+}
+
+/** Glass stub from a cell edge to the center (drawn under housings). */
+function glassStub(g: CanvasRenderingContext2D, side: Dir, filled: boolean): void {
+  const c = CELL / 2;
+  const ends: Array<[number, number]> = [
+    [c, 0],
+    [CELL, c],
+    [c, CELL],
+    [0, c],
+  ];
+  const [ex, ey] = ends[side]!;
+  g.save();
+  g.lineCap = 'butt';
+  for (const [w, color] of filled ? GLASS_FILLED : GLASS_EMPTY) {
+    g.strokeStyle = color;
+    g.lineWidth = w;
+    g.beginPath();
+    g.moveTo(ex, ey);
+    g.lineTo(c, c);
+    g.stroke();
+  }
+  g.restore();
+}
+
+const GLASS_KINDS = new Set<PieceKind>([
+  'H', 'V', 'NE', 'NW', 'SE', 'SW', 'X', 'BONUS',
+  'ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W',
+  'RESERVOIR_H', 'RESERVOIR_V',
+]);
+
+/** Brass canister bulge for reservoirs, with optional green core. */
+function brassCanister(g: CanvasRenderingContext2D, filled: boolean): void {
+  const rings: ReadonlyArray<readonly [number, string]> = [
+    [17, '#17130a'],
+    [16, '#6a4d12'],
+    [14, '#b98a2c'],
+    [12, '#dfbd58'],
+  ];
+  for (const [r, color] of rings) {
+    g.fillStyle = color;
+    g.beginPath();
+    g.arc(24, 24, r, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.fillStyle = '#f4e296';
+  g.beginPath();
+  g.ellipse(20, 19, 6, 4, -0.6, 0, Math.PI * 2);
+  g.fill();
+  if (filled) {
+    g.fillStyle = '#3fbe33';
+    g.beginPath();
+    g.arc(24, 24, 9, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#c4fca6';
+    g.beginPath();
+    g.arc(21, 21, 4, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+/** Blueprint-spec piece: exact geometry, flush collars, smooth glass. */
+function glassPiece(kind: PieceKind, filled: boolean): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = CELL;
+  c.height = CELL;
+  const g = c.getContext('2d')!;
+  const profile = filled ? GLASS_FILLED : kind === 'BONUS' ? GLASS_GOLD : GLASS_EMPTY;
+
+  if (kind === 'X' || kind === 'BONUS') {
+    glassChannel(g, kind, 1, profile);
+    glassChannel(g, kind, 0, profile);
+  } else {
+    glassChannel(g, kind, 0, profile);
+  }
+
+  if (kind.startsWith('RESERVOIR')) brassCanister(g, filled);
+  for (const d of flangesFor(kind)) brassCollar(g, d);
+  if (kind.startsWith('ONEWAY')) {
+    const dir = (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'].indexOf(kind)) as Dir;
+    arrow(g, dir, filled ? PAL.black : PAL.white);
+  }
+  return c;
+}
+
 /** Letter label with a dark chip behind it for readability on bitmaps. */
 function letterChip(g: CanvasRenderingContext2D, ch: 'S' | 'E'): void {
   g.fillStyle = 'rgba(10,10,14,0.85)';
@@ -482,35 +677,44 @@ function pieceOverlays(g: CanvasRenderingContext2D, kind: PieceKind, startExit?:
   if (kind === 'END') letterChip(g, 'E');
 }
 
-/** Build a piece sprite from a sheet; null → procedural fallback. */
-function bitmapPiece(kind: PieceKind, startExit?: Dir): HTMLCanvasElement | null {
+/**
+ * START/END housings and the obstacle use the sheet art; glass stubs are
+ * drawn UNDER the housing toward its open sides so blueprint-spec pipe
+ * chains connect to it flush.
+ */
+function housingPiece(
+  kind: 'START' | 'END' | 'OBSTACLE',
+  filled: boolean,
+  startExit?: Dir,
+): HTMLCanvasElement | null {
   if (!sheetsReady()) return null;
   if (kind === 'OBSTACLE') return extract('ref', REF.plateRust!, CELL, CELL);
-  const crop = pieceCrop(kind, startExit);
-  if (!crop) return null;
-  const c = extract('pipes', pipeCellRect(crop.col, crop.row), CELL, CELL, {
+  const crop = pieceCrop(kind, startExit)!;
+  const c = document.createElement('canvas');
+  c.width = CELL;
+  c.height = CELL;
+  const g = c.getContext('2d')!;
+  const sides: Dir[] = kind === 'END' ? [0, 1, 2, 3] : startExit !== undefined ? [startExit] : [];
+  for (const s of sides) glassStub(g, s, filled);
+  const art = extract(filled ? 'filled' : 'pipes', pipeCellRect(crop.col, crop.row), CELL, CELL, {
     key: true,
-    overscan: 5,
+    overscan: 2,
     rotate: crop.rotate,
   });
-  pieceOverlays(c.getContext('2d')!, kind, startExit);
+  g.drawImage(art, 0, 0);
+  pieceOverlays(g, kind, startExit);
   return c;
 }
 
-/** Glowing filled variant of a piece (same crop from the filled sheet). */
+/** Glowing filled variant of a piece. */
 export function filledPieceSprite(kind: PieceKind, startExit?: Dir): HTMLCanvasElement | null {
-  if (!sheetsReady()) return null;
-  const key = `filled:${kind}:${startExit ?? ''}`;
+  const key = `filled:${kind}:${startExit ?? ''}:${sheetsReady() ? 'bmp' : 'proc'}`;
   const cached = spriteCache.get(key);
   if (cached) return cached;
-  const crop = pieceCrop(kind, startExit);
-  if (!crop) return null;
-  const c = extract('filled', pipeCellRect(crop.col, crop.row), CELL, CELL, {
-    key: true,
-    overscan: 5,
-    rotate: crop.rotate,
-  });
-  pieceOverlays(c.getContext('2d')!, kind, startExit);
+  let c: HTMLCanvasElement | null = null;
+  if (GLASS_KINDS.has(kind)) c = glassPiece(kind, true);
+  else if (kind === 'START' || kind === 'END') c = housingPiece(kind, true, startExit);
+  if (!c) return null;
   spriteCache.set(key, c);
   return c;
 }
@@ -519,7 +723,12 @@ export function pieceSprite(kind: PieceKind, startExit?: Dir): HTMLCanvasElement
   const key = `${kind}:${startExit ?? ''}:${sheetsReady() ? 'bmp' : 'proc'}`;
   const cached = spriteCache.get(key);
   if (cached) return cached;
-  let c = bitmapPiece(kind, startExit);
+  let c: HTMLCanvasElement | null = null;
+  if (GLASS_KINDS.has(kind)) {
+    c = glassPiece(kind, false);
+  } else if (kind === 'START' || kind === 'END' || kind === 'OBSTACLE') {
+    c = housingPiece(kind, false, startExit);
+  }
   if (!c) {
     c = document.createElement('canvas');
     c.width = CELL;

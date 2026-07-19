@@ -3,167 +3,202 @@ import { CELL, drawFlooz, drawMascot, drawPlate, pieceSprite } from './sprites';
 import { extract, refDigitRect, sheetsReady } from './sheet';
 
 /**
- * Asset review page (/PipeDreamz_assets): every piece unfilled and filled,
- * plus connection chains rendered on the real board background so seam
- * "water-tightness" between adjacent pieces can be judged at a glance.
+ * Asset review page (/PipeDreamz_assets): every asset as its own DOM
+ * element — per-piece cards (empty + filled), connection chains rendered
+ * on the real board background to judge water-tightness, and board
+ * furniture. Each card is an individual <canvas>, so assets can be
+ * inspected and saved separately.
  */
 
-const SCALE = 2;
-
 interface ChainCell {
+  dx: number;
+  dy: number;
   kind: PieceKind;
   exit?: Dir;
-  /** Channels to fill (default channel 0; X gets both). */
   fill?: number[];
   reversed?: boolean;
 }
 
-function drawCellGroup(
-  g: CanvasRenderingContext2D,
-  ox: number,
-  oy: number,
-  cells: Array<{ dx: number; dy: number; cell: ChainCell }>,
-  filled: boolean,
-): void {
-  g.save();
-  g.translate(ox, oy);
-  g.scale(SCALE, SCALE);
-  // plates first
-  for (const { dx, dy } of cells) drawPlate(g, dx * CELL, dy * CELL);
-  for (const { dx, dy, cell } of cells) {
-    g.drawImage(pieceSprite(cell.kind, cell.exit), dx * CELL, dy * CELL);
-  }
-  if (filled) {
-    for (const { dx, dy, cell } of cells) {
-      const channels = cell.fill ?? (cell.kind === 'X' || cell.kind === 'BONUS' ? [0, 1] : [0]);
+function tile(cellsW: number, cellsH: number, draw: (g: CanvasRenderingContext2D) => void): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = cellsW * CELL;
+  c.height = cellsH * CELL;
+  const g = c.getContext('2d')!;
+  g.imageSmoothingEnabled = false;
+  draw(g);
+  c.style.width = `${c.width * 2}px`;
+  c.style.imageRendering = 'pixelated';
+  return c;
+}
+
+function chainCanvas(cells: ChainCell[], filled: boolean): HTMLCanvasElement {
+  const w = Math.max(...cells.map((c) => c.dx)) + 1;
+  const h = Math.max(...cells.map((c) => c.dy)) + 1;
+  return tile(w, h, (g) => {
+    for (const { dx, dy } of cells) drawPlate(g, dx * CELL, dy * CELL);
+    for (const c of cells) g.drawImage(pieceSprite(c.kind, c.exit), c.dx * CELL, c.dy * CELL);
+    if (!filled) return;
+    for (const c of cells) {
+      const channels = c.fill ?? (c.kind === 'X' || c.kind === 'BONUS' ? [0, 1] : [0]);
       for (const ch of channels) {
         g.save();
-        g.translate(dx * CELL, dy * CELL);
-        drawFlooz(g, cell.kind, ch, 1, cell.reversed ?? false, cell.exit);
+        g.translate(c.dx * CELL, c.dy * CELL);
+        drawFlooz(g, c.kind, ch, 1, c.reversed ?? false, c.exit);
         g.restore();
       }
     }
-  }
-  g.restore();
-}
-
-function label(g: CanvasRenderingContext2D, text: string, x: number, y: number): void {
-  g.font = 'bold 13px monospace';
-  g.textBaseline = 'top';
-  g.fillStyle = '#e8f2e8';
-  g.fillText(text, x, y);
-}
-
-export function assetGallery(canvas: HTMLCanvasElement): void {
-  const W = 1560;
-  const H = 1220;
-  canvas.width = W;
-  canvas.height = H;
-  const g = canvas.getContext('2d')!;
-  g.imageSmoothingEnabled = false;
-  g.fillStyle = '#101418';
-  g.fillRect(0, 0, W, H);
-
-  label(g, `PIPEDREAMZ ASSET SHEET — sheets ${sheetsReady() ? 'LOADED' : 'MISSING (procedural fallback)'}`, 16, 10);
-
-  // ---------- section 1: every piece, unfilled vs filled ----------
-  const KINDS: Array<{ kind: PieceKind; exit?: Dir; name: string }> = [
-    { kind: 'H', name: 'H' },
-    { kind: 'V', name: 'V' },
-    { kind: 'NE', name: 'NE' },
-    { kind: 'NW', name: 'NW' },
-    { kind: 'SE', name: 'SE' },
-    { kind: 'SW', name: 'SW' },
-    { kind: 'X', name: 'X' },
-    { kind: 'BONUS', name: 'BONUS' },
-    { kind: 'ONEWAY_N', name: 'OW-N' },
-    { kind: 'ONEWAY_E', name: 'OW-E' },
-    { kind: 'ONEWAY_S', name: 'OW-S' },
-    { kind: 'ONEWAY_W', name: 'OW-W' },
-    { kind: 'RESERVOIR_H', name: 'RES-H' },
-    { kind: 'RESERVOIR_V', name: 'RES-V' },
-    { kind: 'START', exit: 1, name: 'START' },
-    { kind: 'END', name: 'END' },
-    { kind: 'OBSTACLE', name: 'OBST' },
-  ];
-  label(g, 'PIECES — top: empty, bottom: filled', 16, 34);
-  KINDS.forEach((k, i) => {
-    const x = 16 + i * (CELL * SCALE + 8);
-    drawCellGroup(g, x, 52, [{ dx: 0, dy: 0, cell: { kind: k.kind, exit: k.exit } }], false);
-    if (k.kind !== 'OBSTACLE') {
-      drawCellGroup(g, x, 52 + CELL * SCALE + 6, [{ dx: 0, dy: 0, cell: { kind: k.kind, exit: k.exit } }], true);
-    }
-    label(g, k.name, x, 52 + 2 * CELL * SCALE + 12);
   });
+}
 
-  // ---------- section 2: connection chains ----------
-  let y = 52 + 2 * CELL * SCALE + 44;
-  label(g, 'CONNECTIONS — seams between adjacent pieces should read water-tight', 16, y - 20);
+function card(root: HTMLElement, title: string, ...canvases: HTMLCanvasElement[]): void {
+  const fig = document.createElement('figure');
+  fig.className = 'asset-card';
+  for (const c of canvases) fig.appendChild(c);
+  const cap = document.createElement('figcaption');
+  cap.textContent = title;
+  fig.appendChild(cap);
+  root.appendChild(fig);
+}
 
-  // a) horizontal run with reservoir
-  const runH: Array<{ dx: number; dy: number; cell: ChainCell }> = [
-    { dx: 0, dy: 0, cell: { kind: 'START', exit: 1 } },
-    { dx: 1, dy: 0, cell: { kind: 'H' } },
-    { dx: 2, dy: 0, cell: { kind: 'RESERVOIR_H' } },
-    { dx: 3, dy: 0, cell: { kind: 'H' } },
-    { dx: 4, dy: 0, cell: { kind: 'ONEWAY_E' } },
-    { dx: 5, dy: 0, cell: { kind: 'END' } },
+function section(root: HTMLElement, title: string): HTMLElement {
+  const h = document.createElement('h2');
+  h.textContent = title;
+  root.appendChild(h);
+  const div = document.createElement('div');
+  div.className = 'asset-row';
+  root.appendChild(div);
+  return div;
+}
+
+export function assetGallery(gameCanvas: HTMLCanvasElement): void {
+  gameCanvas.style.display = 'none';
+  document.getElementById('scanlines')?.classList.add('off');
+  document.body.style.overflow = 'auto';
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #gallery { padding: 20px 28px 60px; font-family: 'Courier New', monospace; color: #dfe8df; }
+    #gallery h1 { font-size: 20px; letter-spacing: 2px; color: #4ce03c; margin-bottom: 4px; }
+    #gallery .sub { color: #8a948a; font-size: 12px; margin-bottom: 18px; }
+    #gallery h2 { font-size: 14px; letter-spacing: 1px; color: #e8c34a; margin: 26px 0 10px; }
+    #gallery .asset-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+    #gallery figure.asset-card { background: #171c21; border: 1px solid #303840;
+      padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    #gallery figure.asset-card canvas { display: block; }
+    #gallery figcaption { font-size: 11px; color: #9aa39a; }
+  `;
+  document.head.appendChild(style);
+
+  const root = document.createElement('div');
+  root.id = 'gallery';
+  document.body.appendChild(root);
+
+  const h1 = document.createElement('h1');
+  h1.textContent = 'PIPEDREAMZ ASSET SHEET';
+  root.appendChild(h1);
+  const sub = document.createElement('div');
+  sub.className = 'sub';
+  sub.textContent = `sheets ${sheetsReady() ? 'loaded' : 'MISSING (procedural fallback)'} — every asset is an individual element; right-click any canvas to save it`;
+  root.appendChild(sub);
+
+  // ---------- pieces ----------
+  const KINDS: Array<{ kind: PieceKind; exit?: Dir; name: string }> = [
+    { kind: 'H', name: 'straight H' },
+    { kind: 'V', name: 'straight V' },
+    { kind: 'NE', name: 'elbow NE' },
+    { kind: 'NW', name: 'elbow NW' },
+    { kind: 'SE', name: 'elbow SE' },
+    { kind: 'SW', name: 'elbow SW' },
+    { kind: 'X', name: 'cross' },
+    { kind: 'BONUS', name: 'bonus' },
+    { kind: 'ONEWAY_N', name: 'one-way N' },
+    { kind: 'ONEWAY_E', name: 'one-way E' },
+    { kind: 'ONEWAY_S', name: 'one-way S' },
+    { kind: 'ONEWAY_W', name: 'one-way W' },
+    { kind: 'RESERVOIR_H', name: 'reservoir H' },
+    { kind: 'RESERVOIR_V', name: 'reservoir V' },
+    { kind: 'START', exit: 1, name: 'start (E)' },
+    { kind: 'START', exit: 2, name: 'start (S)' },
+    { kind: 'END', name: 'end' },
+    { kind: 'OBSTACLE', name: 'obstacle' },
   ];
-  drawCellGroup(g, 16, y, runH, false);
-  drawCellGroup(g, 16 + 7 * CELL * SCALE, y, runH, true);
-  label(g, 'straight run: START > H > RES > H > OW > END (empty | filled)', 16, y + CELL * SCALE + 4);
+  const pieces = section(root, 'PIECES — empty | filled');
+  for (const k of KINDS) {
+    const empty = tile(1, 1, (g) => {
+      drawPlate(g, 0, 0);
+      g.drawImage(pieceSprite(k.kind, k.exit), 0, 0);
+    });
+    if (k.kind === 'OBSTACLE') {
+      card(pieces, k.name, empty);
+      continue;
+    }
+    const filled = tile(1, 1, (g) => {
+      drawPlate(g, 0, 0);
+      g.drawImage(pieceSprite(k.kind, k.exit), 0, 0);
+      const channels = k.kind === 'X' || k.kind === 'BONUS' ? [0, 1] : [0];
+      for (const ch of channels) drawFlooz(g, k.kind, ch, 1, false, k.exit);
+    });
+    card(pieces, k.name, empty, filled);
+  }
 
-  // b) S-bend snake using all four elbows
-  y += CELL * SCALE + 34;
-  const snake: Array<{ dx: number; dy: number; cell: ChainCell }> = [
-    { dx: 0, dy: 0, cell: { kind: 'SE', reversed: false } }, // enters S? shown static
-    { dx: 1, dy: 0, cell: { kind: 'H' } },
-    { dx: 2, dy: 0, cell: { kind: 'SW', reversed: true } },
-    { dx: 2, dy: 1, cell: { kind: 'NE', reversed: true } },
-    { dx: 3, dy: 1, cell: { kind: 'H' } },
-    { dx: 4, dy: 1, cell: { kind: 'NW' } },
-    { dx: 4, dy: 0, cell: { kind: 'V' } },
+  // ---------- connection chains ----------
+  const chains = section(root, 'CONNECTIONS — seams should read water-tight');
+  const runH: ChainCell[] = [
+    { dx: 0, dy: 0, kind: 'START', exit: 1 },
+    { dx: 1, dy: 0, kind: 'H' },
+    { dx: 2, dy: 0, kind: 'RESERVOIR_H' },
+    { dx: 3, dy: 0, kind: 'H' },
+    { dx: 4, dy: 0, kind: 'ONEWAY_E' },
+    { dx: 5, dy: 0, kind: 'END' },
   ];
-  drawCellGroup(g, 16, y, snake, false);
-  drawCellGroup(g, 16 + 7 * CELL * SCALE, y, snake, true);
-  label(g, 'elbow snake: SE > H > SW / NE > H > NW > V (empty | filled)', 16, y + 2 * CELL * SCALE + 4);
+  card(chains, 'straight run — empty', chainCanvas(runH, false));
+  card(chains, 'straight run — filled', chainCanvas(runH, true));
 
-  // c) cross weave: vertical chain crossing a horizontal chain
-  y += 2 * CELL * SCALE + 34;
-  const weave: Array<{ dx: number; dy: number; cell: ChainCell }> = [
-    { dx: 0, dy: 1, cell: { kind: 'H' } },
-    { dx: 1, dy: 1, cell: { kind: 'X' } },
-    { dx: 2, dy: 1, cell: { kind: 'H' } },
-    { dx: 1, dy: 0, cell: { kind: 'V' } },
-    { dx: 1, dy: 2, cell: { kind: 'V' } },
+  const snake: ChainCell[] = [
+    { dx: 0, dy: 0, kind: 'SE' },
+    { dx: 1, dy: 0, kind: 'H' },
+    { dx: 2, dy: 0, kind: 'SW', reversed: true },
+    { dx: 2, dy: 1, kind: 'NE', reversed: true },
+    { dx: 3, dy: 1, kind: 'H' },
+    { dx: 4, dy: 1, kind: 'NW' },
+    { dx: 4, dy: 0, kind: 'V' },
   ];
-  drawCellGroup(g, 16, y, weave, false);
-  drawCellGroup(g, 16 + 5 * CELL * SCALE, y, weave, true);
-  // BONUS weave
-  const weaveB = weave.map((c) => ({ ...c, cell: { ...c.cell, kind: c.cell.kind === 'X' ? ('BONUS' as PieceKind) : c.cell.kind } }));
-  drawCellGroup(g, 16 + 10 * CELL * SCALE, y, weaveB, true);
-  label(g, 'crossover weave: H > X > H over V (empty | filled | bonus)', 16, y + 3 * CELL * SCALE + 4);
+  card(chains, 'elbow snake — empty', chainCanvas(snake, false));
+  card(chains, 'elbow snake — filled', chainCanvas(snake, true));
 
-  // ---------- section 3: board furniture ----------
-  y += 3 * CELL * SCALE + 34;
-  label(g, 'BOARD — plate variants, digits, mascot', 16, y - 20);
-  g.save();
-  g.translate(16, y);
-  g.scale(SCALE, SCALE);
-  for (let i = 0; i < 4; i++) drawPlate(g, i * CELL, 0);
-  g.restore();
+  const weave: ChainCell[] = [
+    { dx: 0, dy: 1, kind: 'H' },
+    { dx: 1, dy: 1, kind: 'X' },
+    { dx: 2, dy: 1, kind: 'H' },
+    { dx: 1, dy: 0, kind: 'V' },
+    { dx: 1, dy: 2, kind: 'V' },
+  ];
+  card(chains, 'crossover — empty', chainCanvas(weave, false));
+  card(chains, 'crossover — filled', chainCanvas(weave, true));
+  const weaveB = weave.map((c) => ({ ...c, kind: c.kind === 'X' ? ('BONUS' as PieceKind) : c.kind }));
+  card(chains, 'crossover — bonus', chainCanvas(weaveB, true));
+
+  // ---------- board furniture ----------
+  const board = section(root, 'BOARD — plates, digits, mascot');
+  card(board, 'plate variants', tile(4, 1, (g) => {
+    for (let i = 0; i < 4; i++) drawPlate(g, i * CELL, 0);
+  }));
   if (sheetsReady()) {
     for (let d = 0; d < 10; d++) {
-      const dig = extract('ref', refDigitRect(d), 12, 20);
-      g.save();
-      g.imageSmoothingEnabled = false;
-      g.drawImage(dig, 16 + 4 * CELL * SCALE + 24 + d * 30, y, 24, 40);
-      g.restore();
+      const c = document.createElement('canvas');
+      c.width = 12;
+      c.height = 20;
+      c.getContext('2d')!.drawImage(extract('ref', refDigitRect(d), 12, 20), 0, 0);
+      c.style.width = '24px';
+      c.style.imageRendering = 'pixelated';
+      card(board, `digit ${d}`, c);
     }
   }
-  g.save();
-  g.translate(16 + 4 * CELL * SCALE + 340, y);
-  g.scale(1, 1);
-  drawMascot(g, 0, 0, 96);
-  g.restore();
+  const mascot = document.createElement('canvas');
+  mascot.width = 64;
+  mascot.height = 100;
+  drawMascot(mascot.getContext('2d')!, 0, 0, 96);
+  mascot.style.width = '128px';
+  mascot.style.imageRendering = 'pixelated';
+  card(board, 'mascot', mascot);
 }
