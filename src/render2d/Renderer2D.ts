@@ -215,12 +215,25 @@ export class Renderer2D {
     g.restore();
   }
 
+  private easySwitch: { x: number; y: number; w: number; h: number } | null = null;
+
+  /** Whether a client-coordinate point hits the easy-queue switch. */
+  hitEasySwitch(clientX: number, clientY: number): boolean {
+    if (!this.easySwitch) return false;
+    const lx = (clientX - this.offX) / this.scale;
+    const ly = (clientY - this.offY) / this.scale;
+    const s = this.easySwitch;
+    return lx >= s.x && lx <= s.x + s.w && ly >= s.y && ly <= s.y + s.h;
+  }
+
   /** Dispenser box(es) in the left column; next piece at the bottom. */
-  drawDispensers(queues: DispenserQueue[]): void {
+  drawDispensers(queues: DispenserQueue[], easy?: boolean): void {
     const g = this.g;
     const x = GAP;
     let y = HUD_H + GAP;
+    let firstBoxTop: number | null = null;
     for (const q of queues) {
+      if (firstBoxTop === null) firstBoxTop = y;
       const innerH = q.depth * (CELL + 4) + 8;
       const boxH = innerH + 16;
       // metal frame
@@ -246,6 +259,26 @@ export class Renderer2D {
         }
       }
       y += boxH + GAP;
+    }
+    // Easy-queue switch: a small clickable tag on the dispenser itself.
+    if (easy !== undefined && firstBoxTop !== null) {
+      const tw = 64;
+      const tx = x + (LEFT_W - tw) / 2;
+      const ty = firstBoxTop - 2;
+      g.fillStyle = PAL.black;
+      g.fillRect(tx - 2, ty - 2, tw + 4, 16);
+      g.fillStyle = easy ? '#12240f' : '#181c20';
+      g.fillRect(tx, ty, tw, 12);
+      g.strokeStyle = easy ? PAL.flooz : '#4c5258';
+      g.lineWidth = 1;
+      g.strokeRect(tx + 0.5, ty + 0.5, tw - 1, 11);
+      g.font = `bold 9px 'Courier New', monospace`;
+      g.textBaseline = 'top';
+      g.fillStyle = easy ? PAL.floozHi : '#8a949e';
+      g.fillText(easy ? 'EASY: ON' : 'EASY:OFF', tx + 6, ty + 2);
+      this.easySwitch = { x: tx - 2, y: ty - 2, w: tw + 4, h: 16 };
+    } else {
+      this.easySwitch = null;
     }
     // Mascot stands in the leftover space BELOW the dispenser box so he
     // never covers the next-piece slot.

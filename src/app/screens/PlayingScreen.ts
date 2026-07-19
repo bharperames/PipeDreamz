@@ -18,6 +18,8 @@ const SIM_DT = 1000 / 120;
 export interface PlayingCallbacks {
   onRoundOver(result: RoundResult): void;
   onQuit(): void;
+  /** Live easy-queue switch changed; lets the session remember it. */
+  onEasyToggle?(on: boolean): void;
 }
 
 export class PlayingScreen {
@@ -36,7 +38,7 @@ export class PlayingScreen {
     mode: GameMode,
     seed: number,
     training: boolean,
-    easyQueue: boolean,
+    private easyQueue: boolean,
     private callbacks: PlayingCallbacks,
     private totals: [number, number],
   ) {
@@ -47,7 +49,7 @@ export class PlayingScreen {
         seed,
         players: mode === 'competitive' ? 2 : 1,
         timeScale: training ? 1.75 : 1,
-        easyQueue,
+        easyQueue: this.easyQueue,
       },
       mulberry32(seed),
     );
@@ -105,6 +107,12 @@ export class PlayingScreen {
 
   onMouseDown(e: MouseEvent): void {
     if (this.paused || this.round.over) return;
+    if (this.renderer.hitEasySwitch(e.clientX, e.clientY)) {
+      this.round.easyQueue = !this.round.easyQueue;
+      this.callbacks.onEasyToggle?.(this.round.easyQueue);
+      this.sfx.play('menu');
+      return;
+    }
     const cell = this.renderer.screenToCell(e.clientX, e.clientY);
     if (!this.round.grid.inBounds(cell)) return;
     const dispenser = e.button === 2 || this.shiftHeld ? 1 : 0;
@@ -192,7 +200,7 @@ export class PlayingScreen {
       r.drawCursorAt(cell.x, cell.y, valid, p === 0 ? PAL.white : '#7db6f0');
     });
 
-    r.drawDispensers(round.queues);
+    r.drawDispensers(round.queues, round.easyQueue);
     r.updateOverlays(dtMs);
 
     const mode = round.mode;

@@ -125,7 +125,7 @@ export class App {
     return {
       mode: 'basic',
       training: false,
-      easy: false,
+      easy: true, // friendly default; classic random queue via the modes screen
       levelIndex: 0,
       totals: [0, 0],
       seedBase: (Date.now() % 100000) + 7,
@@ -177,7 +177,7 @@ export class App {
 
   private showModeSelect(): void {
     let training = false;
-    let easy = false;
+    let easy = true;
     const el = this.menu(`
       <h2 class="panel-heading">SELECT MODE</h2>
       <div class="menu-list">
@@ -185,7 +185,7 @@ export class App {
         <button data-mode="expert">EXPERT ONE-PLUMBER</button>
         <button data-mode="competitive">COMPETITIVE TWO-PLUMBER</button>
         <button data-act="training">TRAINING: OFF</button>
-        <button data-act="easy">EASY QUEUE: OFF</button>
+        <button data-act="easy">EASY QUEUE: ON</button>
         <button data-act="back">BACK</button>
       </div>
       <div class="menu-note">Basic: one dispenser, five pieces queued.<br/>
@@ -258,6 +258,9 @@ export class App {
       {
         onRoundOver: (result) => this.showRoundEnd(result),
         onQuit: () => this.showTitle(),
+        onEasyToggle: (on) => {
+          s.easy = on;
+        },
       },
       s.totals,
     );

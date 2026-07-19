@@ -54,6 +54,8 @@ export class GameRound {
   reachedEnd = false;
   over = false;
   result: RoundResult | null = null;
+  /** Live-togglable: biases future dispenser rolls when true. */
+  easyQueue = false;
 
   private meta = new Map<PlacedPiece, PieceMeta>();
   private lastFilledDispenser: 0 | 1 | null = null;
@@ -77,9 +79,8 @@ export class GameRound {
       this.grid.set(f.pos, this.grid.makePiece(f.kind, null, true, 0));
     }
 
-    const bias: BiasProvider | undefined = config.easyQueue
-      ? () => this.neededWeights()
-      : undefined;
+    this.easyQueue = config.easyQueue ?? false;
+    const bias: BiasProvider = () => (this.easyQueue ? this.neededWeights() : null);
     this.queues =
       config.mode === 'expert'
         ? [
