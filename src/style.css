@@ -171,12 +171,25 @@ body {
 }
 
 .panel {
-  background: var(--panel);
-  border: 2px solid var(--border);
+  /* Glass face with a brass gradient frame, matching the pipe fittings. */
+  background: linear-gradient(160deg, rgba(22, 26, 31, 0.93), rgba(10, 12, 16, 0.95));
+  border: 3px solid transparent;
+  border-image: linear-gradient(
+      180deg,
+      #7a5531,
+      #ffe49c 22%,
+      #dfaf6e 50%,
+      #b6834b 78%,
+      #3a2514
+    )
+    1;
   padding: 34px 48px;
   text-align: center;
   min-width: 420px;
-  box-shadow: 0 0 60px rgba(53, 208, 72, 0.12);
+  box-shadow:
+    0 0 50px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 28px rgba(255, 228, 156, 0.05);
 }
 
 .title-logo {
@@ -202,17 +215,17 @@ body {
   font: inherit;
   font-size: 18px;
   letter-spacing: 2px;
-  background: #171c22;
-  color: #e8e6e0;
-  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
+  color: #ffe49c;
+  border: 1px solid #b6834b;
   cursor: pointer;
 }
 
 .menu-list button:hover,
 .menu-list button.selected {
-  background: #223028;
-  border-color: var(--green);
-  color: var(--green);
+  border-color: #ffe49c;
+  color: #c8ffb0;
+  box-shadow: 0 0 14px rgba(76, 224, 60, 0.35);
 }
 
 .menu-note {
@@ -255,7 +268,10 @@ body {
 h2.panel-heading {
   font-size: 28px;
   letter-spacing: 3px;
-  color: var(--amber);
+  background: linear-gradient(180deg, #ffe49c 20%, #dfaf6e 55%, #b6834b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   margin-bottom: 18px;
 }
 
@@ -268,7 +284,7 @@ h2.panel-heading {
 
 .tally .num {
   float: right;
-  color: var(--amber);
+  color: #ffe49c;
 }
 
 .tally .neg {
@@ -305,7 +321,7 @@ table.scores th {
 
 table.scores td.num {
   text-align: right;
-  color: var(--amber);
+  color: #ffe49c;
 }
 
 .name-entry {
