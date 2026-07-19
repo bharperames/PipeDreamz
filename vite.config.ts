@@ -14,7 +14,14 @@ function assetSheetAlias(): Plugin {
           return;
         }
         if (req.url?.startsWith('/PipeDreamz_assets')) {
-          req.url = '/PipeDreamz/?assets';
+          req.url = '/PipeDreamz/dev.html?assets';
+          next();
+          return;
+        }
+        // The repo root's index.html is the committed BUILT site; dev
+        // serves the source entry instead.
+        if (req.url === '/PipeDreamz/' || req.url === '/PipeDreamz/index.html') {
+          req.url = '/PipeDreamz/dev.html';
         }
         next();
       });
@@ -22,9 +29,10 @@ function assetSheetAlias(): Plugin {
   };
 }
 
-export default defineConfig({
-  // GitHub Pages serves the site from /<repo>/ unless a custom domain is set.
-  base: process.env.PIPEDREAMZ_BASE ?? '/PipeDreamz/',
+export default defineConfig(({ command }) => ({
+  // Builds use relative paths so the committed site works from any Pages
+  // path with zero repo configuration; dev keeps the /PipeDreamz/ prefix.
+  base: command === 'build' ? './' : '/PipeDreamz/',
   plugins: [assetSheetAlias()],
   server: {
     port: 4000,
@@ -32,5 +40,8 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
+    rollupOptions: {
+      input: 'dev.html',
+    },
   },
-});
+}));

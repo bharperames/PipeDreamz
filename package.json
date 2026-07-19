@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "pages": "npm run build && rm -rf assets && cp -R dist/assets assets && cp dist/dev.html index.html && touch .nojekyll",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

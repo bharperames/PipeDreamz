@@ -56,6 +56,15 @@ integer-upscaled with nearest-neighbor sampling for the period-correct look.
 
 ## Deploy
 
-Pushing to `main` runs tests, builds, and deploys to GitHub Pages via
-`.github/workflows/deploy.yml`. The Vite `base` defaults to `/PipeDreamz/`;
-override with the `PIPEDREAMZ_BASE` env var if the repo name differs.
+The built site is committed to the repo root (`index.html`, `assets/`,
+`.nojekyll`) so GitHub Pages serves it directly from the `main` branch
+with zero configuration. To publish a new build:
+
+```sh
+npm run pages   # build + sync dist into the repo root
+git commit -am "publish" && git push
+```
+
+Development uses `dev.html` as the source entry (`npm run dev` serves it
+automatically at `/PipeDreamz/`); the root `index.html` is always the
+last published build.
