@@ -17,7 +17,7 @@ export interface Rect {
   h: number;
 }
 
-export type SheetId = 'pipes' | 'filled' | 'ref';
+export type SheetId = 'pipes' | 'filled' | 'ref' | 'lattice';
 
 const images = new Map<SheetId, HTMLCanvasElement>();
 let ready = false;
@@ -38,12 +38,18 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 /** Load both sheets; resolves false (procedural fallback) on any failure. */
 export async function loadSheets(baseUrl: string): Promise<boolean> {
   try {
-    const [pipes, filled, ref] = await Promise.all([
+    const [pipes, filled, ref, lattice] = await Promise.all([
       loadImage(`${baseUrl}assets/pipes.jpg`),
       loadImage(`${baseUrl}assets/pipes_filled.jpg`),
       loadImage(`${baseUrl}assets/sheet.jpg`),
+      loadImage(`${baseUrl}assets/lattice.png`),
     ]);
-    for (const [id, img] of [['pipes', pipes], ['filled', filled], ['ref', ref]] as const) {
+    for (const [id, img] of [
+      ['pipes', pipes],
+      ['filled', filled],
+      ['ref', ref],
+      ['lattice', lattice],
+    ] as const) {
       const c = document.createElement('canvas');
       c.width = img.naturalWidth;
       c.height = img.naturalHeight;
@@ -77,6 +83,33 @@ export function pipeCellRect(col: number, row: number, inset = 16): Rect {
     h: Math.round(PIPE_GRID.pitchY - 2 * inset),
   };
 }
+
+// ---------- lattice background mock (10x7 grid of dark girder cells) ----------
+
+const LATTICE_GRID = {
+  x0: 18,
+  y0: 18,
+  pitchX: (1634 - 36) / 10,
+  pitchY: (1148 - 36) / 7,
+};
+
+/** Crop rect for one lattice background cell from the mock screen. */
+export function latticeCellRect(col: number, row: number): Rect {
+  return {
+    x: Math.round(LATTICE_GRID.x0 + col * LATTICE_GRID.pitchX + 3),
+    y: Math.round(LATTICE_GRID.y0 + row * LATTICE_GRID.pitchY + 3),
+    w: Math.round(LATTICE_GRID.pitchX - 6),
+    h: Math.round(LATTICE_GRID.pitchY - 6),
+  };
+}
+
+/** Cells in the mock that contain no pipes/cursor/start overlay. */
+export const LATTICE_CLEAN_CELLS: ReadonlyArray<[number, number]> = [
+  [0, 0],
+  [6, 4],
+  [8, 5],
+  [2, 6],
+];
 
 // ---------- ref sheet named regions ----------
 

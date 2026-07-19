@@ -1,5 +1,13 @@
 import { Dir, PieceKind } from '../core/types';
-import { extract, ExtractOpts, pipeCellRect, REF, sheetsReady } from './sheet';
+import {
+  extract,
+  ExtractOpts,
+  LATTICE_CLEAN_CELLS,
+  latticeCellRect,
+  pipeCellRect,
+  REF,
+  sheetsReady,
+} from './sheet';
 
 /**
  * Original pixel-art sprites drawn in code, styled after the visual
@@ -350,12 +358,19 @@ export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExi
  * recessed face with thin diagonal X braces ending in corner pads.
  * Faithful to the original Amiga tile pattern at 2× resolution.
  */
-let plateBitmap: HTMLCanvasElement | null = null;
+let plateBitmaps: HTMLCanvasElement[] | null = null;
 
 export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): void {
   if (sheetsReady()) {
-    if (!plateBitmap) plateBitmap = extract('ref', REF.plateSilver!, CELL, CELL);
-    g.drawImage(plateBitmap, x, y);
+    if (!plateBitmaps) {
+      // Dark girder-lattice background cells; a few variants for texture.
+      plateBitmaps = LATTICE_CLEAN_CELLS.map(([c, r]) =>
+        extract('lattice', latticeCellRect(c, r), CELL, CELL),
+      );
+    }
+    // Deterministic per-cell variant so the board doesn't shimmer.
+    const idx = Math.abs((x * 7 + y * 13) | 0) % plateBitmaps.length;
+    g.drawImage(plateBitmaps[idx]!, x, y);
     return;
   }
   // groove between plates
