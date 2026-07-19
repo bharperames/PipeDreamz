@@ -418,145 +418,190 @@ export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): vo
 
 const spriteCache = new Map<string, HTMLCanvasElement>();
 
-// ---------- blueprint-spec glass & brass pipes ----------
-// Geometry per the blueprint reference: tube outer ~26px on a 48px cell,
-// brass collars 32px wide sitting ON the cell edge (each piece draws an
-// 8px-deep half; two adjacent pieces compose the full double-ring joint,
-// which is what makes connections flush by construction). Shading is a
-// smooth ramp with white specular streaks, not flat bands.
+// ---------- SVG-spec hollow glass & brass pipes ----------
+// Materials ported from the user's pipe.svg definition: the glass tube is
+// TRANSLUCENT (bright white walls falling to a nearly-transparent core so
+// the board shows through the hollow), with three white specular streaks;
+// brass is a 7-stop gradient peaking at #ffe49c. Geometry: tube 24px on a
+// 48px cell, collars 32px wide with each piece drawing an 8px half at its
+// edge — two neighbors compose the full joint, so connections are flush
+// by construction. Elbow shading uses radial gradients centered on the
+// bend corner so the falloff follows the curve.
 
-type Profile = ReadonlyArray<readonly [number, string]>;
+const TUBE_R = 10;
+const OUTLINE = '#1a1c21';
 
-const GLASS_EMPTY: Profile = [
-  [26, '#14171c'],
-  [23, '#7e8a96'],
-  [20, '#a9b4c0'],
-  [16, '#c9d2da'],
-  [12, '#e2e8ee'],
-  [8, '#f1f5f8'],
-  [4, '#fbfdfe'],
-  [2, '#ffffff'],
-];
+function addGlassStops(grad: CanvasGradient, mode: 'empty' | 'filled' | 'gold'): void {
+  if (mode === 'empty') {
+    grad.addColorStop(0, 'rgba(255,255,255,0.42)');
+    grad.addColorStop(0.15, 'rgba(150,160,170,0.20)');
+    grad.addColorStop(0.5, 'rgba(100,110,120,0.10)');
+    grad.addColorStop(0.85, 'rgba(150,160,170,0.20)');
+    grad.addColorStop(1, 'rgba(255,255,255,0.50)');
+  } else if (mode === 'filled') {
+    grad.addColorStop(0, 'rgba(238,255,228,0.95)');
+    grad.addColorStop(0.15, 'rgba(120,228,96,0.92)');
+    grad.addColorStop(0.5, 'rgba(62,202,46,0.92)');
+    grad.addColorStop(0.85, 'rgba(120,228,96,0.92)');
+    grad.addColorStop(1, 'rgba(242,255,232,0.95)');
+  } else {
+    grad.addColorStop(0, 'rgba(255,236,180,0.55)');
+    grad.addColorStop(0.15, 'rgba(216,180,90,0.30)');
+    grad.addColorStop(0.5, 'rgba(170,130,50,0.18)');
+    grad.addColorStop(0.85, 'rgba(216,180,90,0.30)');
+    grad.addColorStop(1, 'rgba(255,240,196,0.60)');
+  }
+}
 
-const GLASS_FILLED: Profile = [
-  [26, '#0d2410'],
-  [23, '#2b8f28'],
-  [20, '#3fbe33'],
-  [16, '#66dd4e'],
-  [12, '#96f078'],
-  [8, '#c4fca6'],
-  [4, '#e8ffd6'],
-  [2, '#ffffff'],
-];
+function addBrassStops(grad: CanvasGradient): void {
+  grad.addColorStop(0, '#7a5531');
+  grad.addColorStop(0.15, '#b6834b');
+  grad.addColorStop(0.3, '#dfaf6e');
+  grad.addColorStop(0.5, '#ffe49c');
+  grad.addColorStop(0.7, '#dfaf6e');
+  grad.addColorStop(0.85, '#b6834b');
+  grad.addColorStop(1, '#543820');
+}
 
-const GLASS_GOLD: Profile = [
-  [26, '#1c1608'],
-  [23, '#8a6c1e'],
-  [20, '#b6922e'],
-  [16, '#d4b04a'],
-  [12, '#e8ca6e'],
-  [8, '#f4df96'],
-  [4, '#fbf0c4'],
-  [2, '#ffffff'],
-];
+type GlassMode = 'empty' | 'filled' | 'gold';
 
-function glassChannel(
+/** Straight glass tube segment from x0..x1 (horizontal) or y0..y1. */
+function glassStraight(
   g: CanvasRenderingContext2D,
-  kind: PieceKind,
-  ch: number,
-  profile: Profile,
+  horizontal: boolean,
+  mode: GlassMode,
+  from = 0,
+  to = CELL,
 ): void {
-  g.save();
-  g.lineCap = 'butt';
-  g.lineJoin = 'round';
-  for (const [w, color] of profile) {
+  const c = CELL / 2;
+  const grad = horizontal
+    ? g.createLinearGradient(0, c - TUBE_R, 0, c + TUBE_R)
+    : g.createLinearGradient(c - TUBE_R, 0, c + TUBE_R, 0);
+  addGlassStops(grad, mode);
+  g.fillStyle = grad;
+  if (horizontal) g.fillRect(from, c - TUBE_R, to - from, TUBE_R * 2);
+  else g.fillRect(c - TUBE_R, from, TUBE_R * 2, to - from);
+
+  const line = (offset: number, w: number, color: string, alpha = 1) => {
+    g.save();
+    g.globalAlpha = alpha;
     g.strokeStyle = color;
     g.lineWidth = w;
     g.beginPath();
-    const steps = 24;
-    for (let i = 0; i <= steps; i++) {
-      const p = pathPoint(kind, ch, i / steps);
-      if (i === 0) g.moveTo(p.x, p.y);
-      else g.lineTo(p.x, p.y);
+    if (horizontal) {
+      g.moveTo(from, c + offset);
+      g.lineTo(to, c + offset);
+    } else {
+      g.moveTo(c + offset, from);
+      g.lineTo(c + offset, to);
     }
     g.stroke();
-  }
-  g.restore();
+    g.restore();
+  };
+  // tube wall outlines
+  line(-TUBE_R, 2, OUTLINE);
+  line(TUBE_R, 2, OUTLINE);
+  // specular streaks per the SVG spec
+  line(-TUBE_R + 4, 2, '#ffffff', 0.6);
+  line(0, 6, '#ffffff', 0.1);
+  line(TUBE_R - 4, 1.5, '#ffffff', 0.3);
+}
+
+/** Quarter-bend glass tube shaded with a radial gradient at the corner. */
+function glassElbow(g: CanvasRenderingContext2D, kind: PieceKind, mode: GlassMode): void {
+  const corners: Record<string, [number, number, number, number]> = {
+    NE: [CELL, 0, Math.PI / 2, Math.PI],
+    NW: [0, 0, 0, Math.PI / 2],
+    SE: [CELL, CELL, Math.PI, 1.5 * Math.PI],
+    SW: [0, CELL, 1.5 * Math.PI, 2 * Math.PI],
+  };
+  const [cx, cy, a0, a1] = corners[kind]!;
+  const r = CELL / 2;
+  const grad = g.createRadialGradient(cx, cy, r - TUBE_R, cx, cy, r + TUBE_R);
+  addGlassStops(grad, mode);
+  g.fillStyle = grad;
+  g.beginPath();
+  g.arc(cx, cy, r + TUBE_R, a0, a1);
+  g.arc(cx, cy, r - TUBE_R, a1, a0, true);
+  g.closePath();
+  g.fill();
+
+  const arcLine = (radius: number, w: number, alpha = 1, color = OUTLINE) => {
+    g.save();
+    g.globalAlpha = alpha;
+    g.strokeStyle = color;
+    g.lineWidth = w;
+    g.beginPath();
+    g.arc(cx, cy, radius, a0, a1);
+    g.stroke();
+    g.restore();
+  };
+  arcLine(r - TUBE_R, 2);
+  arcLine(r + TUBE_R, 2);
+  arcLine(r - TUBE_R + 4, 2, 0.6, '#ffffff');
+  arcLine(r, 6, 0.1, '#ffffff');
+  arcLine(r + TUBE_R - 4, 1.5, 0.3, '#ffffff');
 }
 
 /**
- * Half-collar at a cell edge: 32px wide, 8px deep, riveted brass. The
- * neighboring piece's half completes the double-ring joint of the spec.
+ * Half-collar at a cell edge: 32px wide, 8px deep, riveted brass with the
+ * SVG's gradient running across the pipe. The neighboring piece's half
+ * completes the double-ring coupler of the spec.
  */
 function brassCollar(g: CanvasRenderingContext2D, side: Dir): void {
   const w = 32;
   const t = 8;
   const c = CELL / 2;
-  // Brass ramp across the collar depth (outline, shadow, body, shine, body)
-  const bands: ReadonlyArray<readonly [number, string]> = [
-    [1, '#17130a'],
-    [1, '#6a4d12'],
-    [2, '#caa23c'],
-    [2, '#ecd06e'],
-    [1, '#b98a2c'],
-    [1, '#7a5a14'],
-  ];
   const horizontal = side === 0 || side === 2;
-  g.save();
-  // Position: rows/cols run from the cell edge inward.
-  for (let i = 0, off = 0; i < bands.length; i++) {
-    const [bw, color] = bands[i]!;
-    g.fillStyle = color;
-    if (horizontal) {
-      const y = side === 0 ? off : CELL - off - bw;
-      g.fillRect(c - w / 2, y, w, bw);
-    } else {
-      const x = side === 3 ? off : CELL - off - bw;
-      g.fillRect(x, c - w / 2, bw, w);
-    }
-    off += bw;
-  }
-  // outline caps on the collar sides + rivets
-  g.fillStyle = '#17130a';
+  const x = horizontal ? c - w / 2 : side === 3 ? 0 : CELL - t;
+  const y = horizontal ? (side === 0 ? 0 : CELL - t) : c - w / 2;
+  const rw = horizontal ? w : t;
+  const rh = horizontal ? t : w;
+
+  const grad = horizontal
+    ? g.createLinearGradient(x, 0, x + w, 0)
+    : g.createLinearGradient(0, y, 0, y + w);
+  addBrassStops(grad);
+  g.fillStyle = grad;
+  g.fillRect(x, y, rw, rh);
+  g.strokeStyle = OUTLINE;
+  g.lineWidth = 2;
+  g.strokeRect(x + 0.5, y + 0.5, rw - 1, rh - 1);
+
+  // Rivets: gold dome, dark ring, white glint (per the SVG's rivet def).
+  const rivet = (rx: number, ry: number) => {
+    g.fillStyle = '#543820';
+    g.beginPath();
+    g.arc(rx, ry, 2.5, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#e8c282';
+    g.beginPath();
+    g.arc(rx, ry, 1.7, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.7)';
+    g.fillRect(rx - 1, ry - 1, 1, 1);
+  };
   if (horizontal) {
-    const y = side === 0 ? 0 : CELL - t;
-    g.fillRect(c - w / 2 - 1, y, 1, t);
-    g.fillRect(c + w / 2, y, 1, t);
-    g.fillStyle = '#574010';
-    g.fillRect(c - 10, side === 0 ? 3 : CELL - 5, 2, 2);
-    g.fillRect(c + 8, side === 0 ? 3 : CELL - 5, 2, 2);
+    const ry = side === 0 ? t / 2 : CELL - t / 2;
+    rivet(c - 10, ry);
+    rivet(c + 10, ry);
   } else {
-    const x = side === 3 ? 0 : CELL - t;
-    g.fillRect(x, c - w / 2 - 1, t, 1);
-    g.fillRect(x, c + w / 2, t, 1);
-    g.fillStyle = '#574010';
-    g.fillRect(side === 3 ? 3 : CELL - 5, c - 10, 2, 2);
-    g.fillRect(side === 3 ? 3 : CELL - 5, c + 8, 2, 2);
+    const rx = side === 3 ? t / 2 : CELL - t / 2;
+    rivet(rx, c - 10);
+    rivet(rx, c + 10);
   }
-  g.restore();
 }
 
 /** Glass stub from a cell edge to the center (drawn under housings). */
 function glassStub(g: CanvasRenderingContext2D, side: Dir, filled: boolean): void {
   const c = CELL / 2;
-  const ends: Array<[number, number]> = [
-    [c, 0],
-    [CELL, c],
-    [c, CELL],
-    [0, c],
-  ];
-  const [ex, ey] = ends[side]!;
-  g.save();
-  g.lineCap = 'butt';
-  for (const [w, color] of filled ? GLASS_FILLED : GLASS_EMPTY) {
-    g.strokeStyle = color;
-    g.lineWidth = w;
-    g.beginPath();
-    g.moveTo(ex, ey);
-    g.lineTo(c, c);
-    g.stroke();
-  }
-  g.restore();
+  const mode: GlassMode = filled ? 'filled' : 'empty';
+  const horizontal = side === 1 || side === 3;
+  if (side === 0) glassStraight(g, false, mode, 0, c);
+  if (side === 2) glassStraight(g, false, mode, c, CELL);
+  if (side === 3) glassStraight(g, true, mode, 0, c);
+  if (side === 1) glassStraight(g, true, mode, c, CELL);
+  void horizontal;
 }
 
 const GLASS_KINDS = new Set<PieceKind>([
@@ -566,51 +611,64 @@ const GLASS_KINDS = new Set<PieceKind>([
 ]);
 
 /** Brass canister bulge for reservoirs, with optional green core. */
-function brassCanister(g: CanvasRenderingContext2D, filled: boolean): void {
-  const rings: ReadonlyArray<readonly [number, string]> = [
-    [17, '#17130a'],
-    [16, '#6a4d12'],
-    [14, '#b98a2c'],
-    [12, '#dfbd58'],
-  ];
-  for (const [r, color] of rings) {
-    g.fillStyle = color;
-    g.beginPath();
-    g.arc(24, 24, r, 0, Math.PI * 2);
-    g.fill();
-  }
-  g.fillStyle = '#f4e296';
-  g.beginPath();
-  g.ellipse(20, 19, 6, 4, -0.6, 0, Math.PI * 2);
-  g.fill();
+function brassCanister(g: CanvasRenderingContext2D, horizontal: boolean, filled: boolean): void {
+  const c = CELL / 2;
+  const along = 26;
+  const across = 34;
+  const x = horizontal ? c - along / 2 : c - across / 2;
+  const y = horizontal ? c - across / 2 : c - along / 2;
+  const w = horizontal ? along : across;
+  const h = horizontal ? across : along;
+  const grad = horizontal
+    ? g.createLinearGradient(0, y, 0, y + h)
+    : g.createLinearGradient(x, 0, x + w, 0);
+  addBrassStops(grad);
+  g.fillStyle = grad;
+  g.fillRect(x, y, w, h);
+  g.strokeStyle = OUTLINE;
+  g.lineWidth = 2;
+  g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  g.fillStyle = 'rgba(255,255,255,0.5)';
+  g.fillRect(x + 3, y + 3, horizontal ? w - 6 : 3, horizontal ? 3 : h - 6);
   if (filled) {
-    g.fillStyle = '#3fbe33';
+    g.fillStyle = 'rgba(62,202,46,0.95)';
     g.beginPath();
-    g.arc(24, 24, 9, 0, Math.PI * 2);
+    g.ellipse(c, c, horizontal ? 8 : 11, horizontal ? 11 : 8, 0, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = '#c4fca6';
+    g.fillStyle = 'rgba(196,252,166,0.9)';
     g.beginPath();
-    g.arc(21, 21, 4, 0, Math.PI * 2);
+    g.arc(c - 2, c - 3, 3.5, 0, Math.PI * 2);
     g.fill();
   }
 }
 
-/** Blueprint-spec piece: exact geometry, flush collars, smooth glass. */
+/** SVG-spec piece: exact geometry, flush half-collar joints, hollow glass. */
 function glassPiece(kind: PieceKind, filled: boolean): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = CELL;
   c.height = CELL;
   const g = c.getContext('2d')!;
-  const profile = filled ? GLASS_FILLED : kind === 'BONUS' ? GLASS_GOLD : GLASS_EMPTY;
+  const mode: GlassMode = filled ? 'filled' : kind === 'BONUS' ? 'gold' : 'empty';
 
-  if (kind === 'X' || kind === 'BONUS') {
-    glassChannel(g, kind, 1, profile);
-    glassChannel(g, kind, 0, profile);
-  } else {
-    glassChannel(g, kind, 0, profile);
+  switch (kind) {
+    case 'H': case 'ONEWAY_E': case 'ONEWAY_W': case 'RESERVOIR_H':
+      glassStraight(g, true, mode);
+      break;
+    case 'V': case 'ONEWAY_N': case 'ONEWAY_S': case 'RESERVOIR_V':
+      glassStraight(g, false, mode);
+      break;
+    case 'NE': case 'NW': case 'SE': case 'SW':
+      glassElbow(g, kind, mode);
+      break;
+    case 'X': case 'BONUS':
+      glassStraight(g, true, mode);
+      glassStraight(g, false, mode);
+      break;
+    default:
+      break;
   }
 
-  if (kind.startsWith('RESERVOIR')) brassCanister(g, filled);
+  if (kind.startsWith('RESERVOIR')) brassCanister(g, kind === 'RESERVOIR_H', filled);
   for (const d of flangesFor(kind)) brassCollar(g, d);
   if (kind.startsWith('ONEWAY')) {
     const dir = (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'].indexOf(kind)) as Dir;
@@ -759,10 +817,10 @@ export function glowAlongPath(
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const layers: Array<[number, number]> = [
-    [34, 0.045],
-    [26, 0.07],
-    [19, 0.1],
-    [12, 0.14],
+    [26, 0.04],
+    [20, 0.065],
+    [14, 0.09],
+    [9, 0.13],
   ];
   for (const [w, a] of layers) {
     g.strokeStyle = `rgba(90, 235, 70, ${a})`;

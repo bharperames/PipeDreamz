@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" style="background-color: #1e1e24;">
+  <defs>
+    <!-- Background Grid Pattern (16px minor, 32px major) -->
+    <pattern id="smallGrid" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="16" height="16" fill="none" stroke="#33353b" stroke-width="0.5"/>
+    </pattern>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <rect width="32" height="32" fill="url(#smallGrid)" stroke="#4a4d56" stroke-width="1"/>
+    </pattern>
+
+    <!-- Brass Material: Vertical Gradient (for horizontal pipes) -->
+    <linearGradient id="brass-v" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7a5531" />
+      <stop offset="15%" stop-color="#b6834b" />
+      <stop offset="30%" stop-color="#dfaf6e" />
+      <stop offset="50%" stop-color="#ffe49c" />
+      <stop offset="70%" stop-color="#dfaf6e" />
+      <stop offset="85%" stop-color="#b6834b" />
+      <stop offset="100%" stop-color="#543820" />
+    </linearGradient>
+
+    <!-- Brass Material: Horizontal Gradient (for vertical pipes) -->
+    <linearGradient id="brass-h" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7a5531" />
+      <stop offset="15%" stop-color="#b6834b" />
+      <stop offset="50%" stop-color="#ffe49c" />
+      <stop offset="85%" stop-color="#b6834b" />
+      <stop offset="100%" stop-color="#543820" />
+    </linearGradient>
+
+    <!-- Glass Material: Volumetric Base -->
+    <linearGradient id="glass-base-v" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.4)" />
+      <stop offset="15%" stop-color="rgba(150, 160, 170, 0.2)" />
+      <stop offset="50%" stop-color="rgba(100, 110, 120, 0.1)" />
+      <stop offset="85%" stop-color="rgba(150, 160, 170, 0.2)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.5)" />
+    </linearGradient>
+
+    <!-- Drop Shadow for Brass Elements -->
+    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.5" />
+    </filter>
+
+    <!-- Reusable Rivet -->
+    <g id="rivet">
+      <circle cx="0" cy="0" r="1.5" fill="#e8c282" stroke="#543820" stroke-width="0.5" />
+      <circle cx="-0.5" cy="-0.5" r="0.5" fill="#fff" opacity="0.6" />
+    </g>
+  </defs>
+
+  <!-- 1. Canvas & Grid -->
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <!-- Master Assembly Group (Centered on grid) -->
+  <g transform="translate(16, 64)">
+    
+    <!-- 2. BASE GLASS LAYER (Rendered behind brass fittings) -->
+    <!-- Straight Segment -->
+    <rect x="12" y="8" width="96" height="24" fill="url(#glass-base-v)" stroke="#1a1c21" stroke-width="2" />
+    
+    <!-- T-Junction Base -->
+    <path d="M 112 8 L 152 8 C 160 8, 168 8, 168 0 L 168 -16 L 192 -16 L 192 0 C 192 16, 192 32, 112 32 Z" 
+          fill="url(#glass-base-v)" stroke="#1a1c21" stroke-width="2" />
+    <rect x="112" y="8" width="88" height="24" fill="url(#glass-base-v)" />
+    
+    <!-- Elbow Base -->
+    <path d="M 216 8 L 248 8 C 272 8, 280 16, 280 -16 L 256 -16 C 256 -8, 256 8, 216 8 Z" 
+          fill="url(#glass-base-v)" stroke="#1a1c21" stroke-width="2" />
+    <!-- Thicker Elbow Outer Curve Fill -->
+    <path d="M 216 8 L 248 8 C 280 8, 280 -16, 280 -16 L 256 -16 C 256 0, 240 8, 216 8 Z" fill="url(#glass-base-v)"/>
+    <path d="M 216 32 L 248 32 C 296 32, 280 -16, 280 -16" fill="none" stroke="#1a1c21" stroke-width="2"/>
+
+
+    <!-- 3. SPECULAR HIGHLIGHTS (Layered on top of base glass) -->
+    <!-- Straight Pipe Highlights -->
+    <line x1="12" y1="12" x2="108" y2="12" stroke="#fff" stroke-width="2" opacity="0.6" />
+    <line x1="12" y1="28" x2="108" y2="28" stroke="#fff" stroke-width="1.5" opacity="0.3" />
+    <line x1="12" y1="20" x2="108" y2="20" stroke="#fff" stroke-width="6" opacity="0.1" />
+
+    <!-- T-Junction Highlights -->
+    <line x1="112" y1="12" x2="152" y2="12" stroke="#fff" stroke-width="2" opacity="0.6" />
+    <line x1="112" y1="28" x2="192" y2="28" stroke="#fff" stroke-width="1.5" opacity="0.3" />
+    <!-- T-Junction Inner Curve Highlight -->
+    <path d="M 152 12 C 164 12, 164 0, 164 -16" fill="none" stroke="#fff" stroke-width="2" opacity="0.6" />
+    <path d="M 196 12 C 188 12, 188 0, 188 -16" fill="none" stroke="#fff" stroke-width="2" opacity="0.6" />
+
+    <!-- Elbow Highlights -->
+    <line x1="216" y1="12" x2="248" y2="12" stroke="#fff" stroke-width="2" opacity="0.6" />
+    <line x1="216" y1="28" x2="248" y2="28" stroke="#fff" stroke-width="1.5" opacity="0.3" />
+    <path d="M 248 12 C 264 12, 264 -4, 264 -16" fill="none" stroke="#fff" stroke-width="2" opacity="0.6" />
+    <path d="M 248 28 C 276 28, 276 -4, 276 -16" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.3" />
+
+
+    <!-- 4. BRASS FITTINGS -->
+    <!-- Left Cap -->
+    <g filter="url(#drop-shadow)">
+      <rect x="0" y="4" width="12" height="32" rx="2" fill="url(#brass-v)" stroke="#1a1c21" stroke-width="1.5" />
+      <use href="#rivet" x="6" y="8" />
+      <use href="#rivet" x="6" y="16" />
+      <use href="#rivet" x="6" y="24" />
+      <use href="#rivet" x="6" y="32" />
+    </g>
+
+    <!-- Coupler 1 (Straight to T-Junction) -->
+    <g filter="url(#drop-shadow)">
+      <rect x="96" y="4" width="12" height="32" rx="2" fill="url(#brass-v)" stroke="#1a1c21" stroke-width="1.5" />
+      <rect x="108" y="4" width="12" height="32" rx="2" fill="url(#brass-v)" stroke="#1a1c21" stroke-width="1.5" />
+      <!-- Rivets Left -->
+      <use href="#rivet" x="102" y="8" />
+      <use href="#rivet" x="102" y="16" />
+      <use href="#rivet" x="102" y="24" />
+      <use href="#rivet" x="102" y="32" />
+      <!-- Rivets Right -->
+      <use href="#rivet" x="114" y="8" />
+      <use href="#rivet" x="114" y="16" />
+      <use href="#rivet" x="114" y="24" />
+      <use href="#rivet" x="114" y="32" />
+    </g>
+
+    <!-- Top T-Junction Flange -->
+    <g filter="url(#drop-shadow)">
+      <rect x="160" y="-24" width="40" height="8" rx="2" fill="url(#brass-h)" stroke="#1a1c21" stroke-width="1.5" />
+      <rect x="164" y="-16" width="32" height="4" fill="url(#brass-h)" stroke="#1a1c21" stroke-width="1.5" />
+      <use href="#rivet" x="166" y="-20" />
+      <use href="#rivet" x="174" y="-20" />
+      <use href="#rivet" x="186" y="-20" />
+      <use href="#rivet" x="194" y="-20" />
+    </g>
+
+    <!-- Coupler 2 (T-Junction to Elbow) -->
+    <g filter="url(#drop-shadow)">
+      <rect x="204" y="4" width="12" height="32" rx="2" fill="url(#brass-v)" stroke="#1a1c21" stroke-width="1.5" />
+      <rect x="216" y="4" width="12" height="32" rx="2" fill="url(#brass-v)" stroke="#1a1c21" stroke-width="1.5" />
+      <!-- Rivets Left -->
+      <use href="#rivet" x="210" y="8" />
+      <use href="#rivet" x="210" y="24" />
+      <use href="#rivet" x="210" y="32" />
+      <!-- Rivets Right -->
+      <use href="#rivet" x="222" y="8" />
+      <use href="#rivet" x="222" y="24" />
+      <use href="#rivet" x="222" y="32" />
+    </g>
+
+    <!-- Top Elbow Flange -->
+    <g filter="url(#drop-shadow)">
+      <rect x="248" y="-24" width="40" height="8" rx="2" fill="url(#brass-h)" stroke="#1a1c21" stroke-width="1.5" />
+      <rect x="252" y="-16" width="32" height="4" fill="url(#brass-h)" stroke="#1a1c21" stroke-width="1.5" />
+      <use href="#rivet" x="254" y="-20" />
+      <use href="#rivet" x="264" y="-20" />
+      <use href="#rivet" x="274" y="-20" />
+      <use href="#rivet" x="282" y="-20" />
+    </g>
+
+    <!-- 5. UI / DIMENSION OVERLAY -->
+    <!-- Measurement Arrows & Line -->
+    <g transform="translate(0, -48)">
+      <line x1="248" y1="16" x2="288" y2="16" stroke="#9da3af" stroke-width="1" />
+      <!-- Left Arrow Boundary -->
+      <line x1="248" y1="12" x2="248" y2="20" stroke="#9da3af" stroke-width="1" />
+      <polygon points="248,16 252,14 252,18" fill="#9da3af" />
+      <!-- Right Arrow Boundary -->
+      <line x1="288" y1="12" x2="288" y2="20" stroke="#9da3af" stroke-width="1" />
+      <polygon points="288,16 284,14 284,18" fill="#9da3af" />
+      
+      <!-- Text Label -->
+      <text x="268" y="10" font-family="monospace" font-size="10" fill="#9da3af" text-anchor="middle" letter-spacing="1">w: 32px</text>
+    </g>
+
+  </g>
+</svg>
