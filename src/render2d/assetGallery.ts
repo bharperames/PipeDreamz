@@ -201,4 +201,22 @@ export function assetGallery(gameCanvas: HTMLCanvasElement): void {
   mascot.style.width = '128px';
   mascot.style.imageRendering = 'pixelated';
   card(board, 'mascot', mascot);
+
+  // ---------- source SVG specs, rendered natively as vectors ----------
+  const specs = section(root, 'SPEC — source SVG definitions (native vector render; game uses procedural canvas ports of these)');
+  for (const [file, name] of [
+    ['pipe_v3.svg', 'pipe_v3.svg — current material & geometry spec'],
+    ['pipe.svg', 'pipe.svg — original spec (v1)'],
+  ] as const) {
+    const fig = document.createElement('figure');
+    fig.className = 'asset-card';
+    const img = document.createElement('img');
+    img.src = `${import.meta.env.BASE_URL}assets/${file}`;
+    img.style.width = '640px';
+    const cap = document.createElement('figcaption');
+    cap.textContent = name;
+    fig.appendChild(img);
+    fig.appendChild(cap);
+    specs.appendChild(fig);
+  }
 }

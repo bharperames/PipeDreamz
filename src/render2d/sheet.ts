@@ -140,7 +140,8 @@ const DIGIT_SPANS: ReadonlyArray<[number, number]> = [
 
 export function refDigitRect(d: number): Rect {
   const [x0, x1] = DIGIT_SPANS[d]!;
-  return { x: x0 - 2, y: 1546, w: x1 - x0 + 4, h: 88 };
+  // Vertical extent measured from the sheet: glyphs span y 1526..1609.
+  return { x: x0 - 2, y: 1522, w: x1 - x0 + 4, h: 92 };
 }
 
 // ---------- extraction ----------

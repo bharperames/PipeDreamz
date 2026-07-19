@@ -74,11 +74,6 @@ export const PAL = {
 export function pathPoint(kind: PieceKind, channelIdx: number, t: number): { x: number; y: number } {
   const c = CELL / 2;
   const lerp = (a: number, b: number) => a + (b - a) * t;
-  // Elbows are smooth quarter arcs, matching the blueprint reference.
-  const arc = (cx: number, cy: number, a0: number, a1: number) => {
-    const a = a0 + (a1 - a0) * t;
-    return { x: cx + c * Math.cos(a), y: cy + c * Math.sin(a) };
-  };
   switch (kind) {
     case 'H': case 'RESERVOIR_H': case 'ONEWAY_E':
       return { x: lerp(0, CELL), y: c };
@@ -88,10 +83,19 @@ export function pathPoint(kind: PieceKind, channelIdx: number, t: number): { x: 
       return { x: c, y: lerp(0, CELL) };
     case 'ONEWAY_N':
       return { x: c, y: lerp(CELL, 0) };
-    case 'NE': return arc(CELL, 0, Math.PI, Math.PI / 2);
-    case 'NW': return arc(0, 0, 0, Math.PI / 2);
-    case 'SE': return arc(CELL, CELL, Math.PI, 1.5 * Math.PI);
-    case 'SW': return arc(0, CELL, 0, -Math.PI / 2);
+    // Fitting-style elbows (v3): two straight segments meeting at center.
+    case 'NE':
+      if (t <= 0.5) return { x: c, y: t * 2 * c };
+      return { x: c + (t - 0.5) * 2 * c, y: c };
+    case 'NW':
+      if (t <= 0.5) return { x: c, y: t * 2 * c };
+      return { x: c - (t - 0.5) * 2 * c, y: c };
+    case 'SE':
+      if (t <= 0.5) return { x: c, y: CELL - t * 2 * c };
+      return { x: c + (t - 0.5) * 2 * c, y: c };
+    case 'SW':
+      if (t <= 0.5) return { x: c, y: CELL - t * 2 * c };
+      return { x: c - (t - 0.5) * 2 * c, y: c };
     case 'X': case 'BONUS':
       return channelIdx === 0 ? { x: c, y: lerp(0, CELL) } : { x: lerp(0, CELL), y: c };
     default:
@@ -431,36 +435,32 @@ const spriteCache = new Map<string, HTMLCanvasElement>();
 const TUBE_R = 10;
 const OUTLINE = '#1a1c21';
 
+// Material stops per pipe_v3.svg: glassier 4-stop tube, punchier brass.
 function addGlassStops(grad: CanvasGradient, mode: 'empty' | 'filled' | 'gold'): void {
   if (mode === 'empty') {
-    grad.addColorStop(0, 'rgba(255,255,255,0.42)');
-    grad.addColorStop(0.15, 'rgba(150,160,170,0.20)');
-    grad.addColorStop(0.5, 'rgba(100,110,120,0.10)');
-    grad.addColorStop(0.85, 'rgba(150,160,170,0.20)');
+    grad.addColorStop(0, 'rgba(255,255,255,0.40)');
+    grad.addColorStop(0.2, 'rgba(150,160,170,0.10)');
+    grad.addColorStop(0.8, 'rgba(150,160,170,0.10)');
     grad.addColorStop(1, 'rgba(255,255,255,0.50)');
   } else if (mode === 'filled') {
     grad.addColorStop(0, 'rgba(238,255,228,0.95)');
-    grad.addColorStop(0.15, 'rgba(120,228,96,0.92)');
-    grad.addColorStop(0.5, 'rgba(62,202,46,0.92)');
-    grad.addColorStop(0.85, 'rgba(120,228,96,0.92)');
+    grad.addColorStop(0.2, 'rgba(88,214,66,0.92)');
+    grad.addColorStop(0.8, 'rgba(88,214,66,0.92)');
     grad.addColorStop(1, 'rgba(242,255,232,0.95)');
   } else {
     grad.addColorStop(0, 'rgba(255,236,180,0.55)');
-    grad.addColorStop(0.15, 'rgba(216,180,90,0.30)');
-    grad.addColorStop(0.5, 'rgba(170,130,50,0.18)');
-    grad.addColorStop(0.85, 'rgba(216,180,90,0.30)');
+    grad.addColorStop(0.2, 'rgba(196,156,66,0.22)');
+    grad.addColorStop(0.8, 'rgba(196,156,66,0.22)');
     grad.addColorStop(1, 'rgba(255,240,196,0.60)');
   }
 }
 
 function addBrassStops(grad: CanvasGradient): void {
   grad.addColorStop(0, '#7a5531');
-  grad.addColorStop(0.15, '#b6834b');
-  grad.addColorStop(0.3, '#dfaf6e');
+  grad.addColorStop(0.2, '#dfaf6e');
   grad.addColorStop(0.5, '#ffe49c');
-  grad.addColorStop(0.7, '#dfaf6e');
-  grad.addColorStop(0.85, '#b6834b');
-  grad.addColorStop(1, '#543820');
+  grad.addColorStop(0.8, '#b6834b');
+  grad.addColorStop(1, '#3a2514');
 }
 
 type GlassMode = 'empty' | 'filled' | 'gold';
@@ -501,46 +501,137 @@ function glassStraight(
   // tube wall outlines
   line(-TUBE_R, 2, OUTLINE);
   line(TUBE_R, 2, OUTLINE);
-  // specular streaks per the SVG spec
+  // two specular streaks per the v3 spec (no center haze)
   line(-TUBE_R + 4, 2, '#ffffff', 0.6);
-  line(0, 6, '#ffffff', 0.1);
-  line(TUBE_R - 4, 1.5, '#ffffff', 0.3);
+  line(TUBE_R - 4, 1, '#ffffff', 0.3);
 }
 
-/** Quarter-bend glass tube shaded with a radial gradient at the corner. */
+/**
+ * Fitting-style elbow per pipe_v3: straight runs meeting at a corner with
+ * a small inner fillet and a large outer fillet. Drawn once in canonical
+ * NE orientation (N + E openings) and mirrored for the other three.
+ */
 function glassElbow(g: CanvasRenderingContext2D, kind: PieceKind, mode: GlassMode): void {
-  const corners: Record<string, [number, number, number, number]> = {
-    NE: [CELL, 0, Math.PI / 2, Math.PI],
-    NW: [0, 0, 0, Math.PI / 2],
-    SE: [CELL, CELL, Math.PI, 1.5 * Math.PI],
-    SW: [0, CELL, 1.5 * Math.PI, 2 * Math.PI],
+  const c = CELL / 2;
+  const wall = c - TUBE_R; // 14
+  const wallF = c + TUBE_R; // 34
+  const RO = 20; // outer fillet radius
+  const RI = 6; // inner fillet radius
+
+  g.save();
+  // Mirror canonical NE into the requested orientation.
+  if (kind === 'NW') {
+    g.translate(CELL, 0);
+    g.scale(-1, 1);
+  } else if (kind === 'SE') {
+    g.translate(0, CELL);
+    g.scale(1, -1);
+  } else if (kind === 'SW') {
+    g.translate(CELL, CELL);
+    g.scale(-1, -1);
+  }
+
+  const tube = () => {
+    g.beginPath();
+    g.moveTo(wall, 0);
+    g.arcTo(wall, wallF, CELL, wallF, RO); // outer sweep
+    g.lineTo(CELL, wallF);
+    g.lineTo(CELL, wall);
+    g.arcTo(wallF, wall, wallF, 0, RI); // inner fillet
+    g.lineTo(wallF, 0);
+    g.closePath();
   };
-  const [cx, cy, a0, a1] = corners[kind]!;
-  const r = CELL / 2;
-  const grad = g.createRadialGradient(cx, cy, r - TUBE_R, cx, cy, r + TUBE_R);
+
+  // Gradient perpendicular to the horizontal arm (v3's compromise).
+  const grad = g.createLinearGradient(0, wall, 0, wallF);
   addGlassStops(grad, mode);
   g.fillStyle = grad;
-  g.beginPath();
-  g.arc(cx, cy, r + TUBE_R, a0, a1);
-  g.arc(cx, cy, r - TUBE_R, a1, a0, true);
-  g.closePath();
+  tube();
   g.fill();
+  g.strokeStyle = OUTLINE;
+  g.lineWidth = 2;
+  tube();
+  g.stroke();
 
-  const arcLine = (radius: number, w: number, alpha = 1, color = OUTLINE) => {
-    g.save();
-    g.globalAlpha = alpha;
-    g.strokeStyle = color;
+  // Speculars: bright streak inside the inner wall, faint inside outer.
+  g.save();
+  g.globalAlpha = 0.6;
+  g.strokeStyle = '#ffffff';
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(wallF - 4, 0);
+  g.arcTo(wallF - 4, wall + 4, CELL, wall + 4, RI + 4);
+  g.lineTo(CELL, wall + 4);
+  g.stroke();
+  g.globalAlpha = 0.3;
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(wall + 4, 0);
+  g.arcTo(wall + 4, wallF - 4, CELL, wallF - 4, RO - 8);
+  g.lineTo(CELL, wallF - 4);
+  g.stroke();
+  g.restore();
+  g.restore();
+}
+
+/**
+ * Fused 4-way cross per pipe_v3: one glass path with small fillets at all
+ * four junction corners — no double-painted intersection.
+ */
+function glassCross(g: CanvasRenderingContext2D, mode: GlassMode): void {
+  const wall = CELL / 2 - TUBE_R;
+  const wallF = CELL / 2 + TUBE_R;
+  const RI = 6;
+
+  const tube = () => {
+    g.beginPath();
+    g.moveTo(wall, 0);
+    g.arcTo(wall, wall, 0, wall, RI);
+    g.lineTo(0, wall);
+    g.lineTo(0, wallF);
+    g.arcTo(wall, wallF, wall, CELL, RI);
+    g.lineTo(wall, CELL);
+    g.lineTo(wallF, CELL);
+    g.arcTo(wallF, wallF, CELL, wallF, RI);
+    g.lineTo(CELL, wallF);
+    g.lineTo(CELL, wall);
+    g.arcTo(wallF, wall, wallF, 0, RI);
+    g.lineTo(wallF, 0);
+    g.closePath();
+  };
+
+  const grad = g.createLinearGradient(0, wall, 0, wallF);
+  addGlassStops(grad, mode);
+  g.fillStyle = grad;
+  tube();
+  g.fill();
+  g.strokeStyle = OUTLINE;
+  g.lineWidth = 2;
+  tube();
+  g.stroke();
+
+  // Specular segments on each arm, stopping short of the junction.
+  g.save();
+  g.strokeStyle = '#ffffff';
+  const seg = (x0: number, y0: number, x1: number, y1: number, w: number, a: number) => {
+    g.globalAlpha = a;
     g.lineWidth = w;
     g.beginPath();
-    g.arc(cx, cy, radius, a0, a1);
+    g.moveTo(x0, y0);
+    g.lineTo(x1, y1);
     g.stroke();
-    g.restore();
   };
-  arcLine(r - TUBE_R, 2);
-  arcLine(r + TUBE_R, 2);
-  arcLine(r - TUBE_R + 4, 2, 0.6, '#ffffff');
-  arcLine(r, 6, 0.1, '#ffffff');
-  arcLine(r + TUBE_R - 4, 1.5, 0.3, '#ffffff');
+  const b = wall + 4; // bright offset
+  const f = wallF - 4; // faint offset
+  seg(0, b, wall - 2, b, 2, 0.6);
+  seg(wallF + 2, b, CELL, b, 2, 0.6);
+  seg(0, f, wall - 2, f, 1, 0.3);
+  seg(wallF + 2, f, CELL, f, 1, 0.3);
+  seg(b, 0, b, wall - 2, 2, 0.6);
+  seg(b, wallF + 2, b, CELL, 2, 0.6);
+  seg(f, 0, f, wall - 2, 1, 0.3);
+  seg(f, wallF + 2, f, CELL, 1, 0.3);
+  g.restore();
 }
 
 /**
@@ -549,7 +640,7 @@ function glassElbow(g: CanvasRenderingContext2D, kind: PieceKind, mode: GlassMod
  * completes the double-ring coupler of the spec.
  */
 function brassCollar(g: CanvasRenderingContext2D, side: Dir): void {
-  const w = 32;
+  const w = 28;
   const t = 8;
   const c = CELL / 2;
   const horizontal = side === 0 || side === 2;
@@ -562,33 +653,34 @@ function brassCollar(g: CanvasRenderingContext2D, side: Dir): void {
     ? g.createLinearGradient(x, 0, x + w, 0)
     : g.createLinearGradient(0, y, 0, y + w);
   addBrassStops(grad);
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,0.6)';
+  g.shadowBlur = 2;
+  g.shadowOffsetX = 1;
+  g.shadowOffsetY = 1;
   g.fillStyle = grad;
   g.fillRect(x, y, rw, rh);
+  g.restore();
   g.strokeStyle = OUTLINE;
   g.lineWidth = 2;
   g.strokeRect(x + 0.5, y + 0.5, rw - 1, rh - 1);
 
-  // Rivets: gold dome, dark ring, white glint (per the SVG's rivet def).
+  // Four rivets per collar (per the v3 rivet layout).
   const rivet = (rx: number, ry: number) => {
-    g.fillStyle = '#543820';
+    g.fillStyle = '#4a3018';
     g.beginPath();
-    g.arc(rx, ry, 2.5, 0, Math.PI * 2);
+    g.arc(rx, ry, 2.2, 0, Math.PI * 2);
     g.fill();
     g.fillStyle = '#e8c282';
     g.beginPath();
-    g.arc(rx, ry, 1.7, 0, Math.PI * 2);
+    g.arc(rx, ry, 1.5, 0, Math.PI * 2);
     g.fill();
     g.fillStyle = 'rgba(255,255,255,0.7)';
     g.fillRect(rx - 1, ry - 1, 1, 1);
   };
-  if (horizontal) {
-    const ry = side === 0 ? t / 2 : CELL - t / 2;
-    rivet(c - 10, ry);
-    rivet(c + 10, ry);
-  } else {
-    const rx = side === 3 ? t / 2 : CELL - t / 2;
-    rivet(rx, c - 10);
-    rivet(rx, c + 10);
+  for (const off of [-10, -4, 4, 10]) {
+    if (horizontal) rivet(c + off, side === 0 ? t / 2 : CELL - t / 2);
+    else rivet(side === 3 ? t / 2 : CELL - t / 2, c + off);
   }
 }
 
@@ -661,8 +753,7 @@ function glassPiece(kind: PieceKind, filled: boolean): HTMLCanvasElement {
       glassElbow(g, kind, mode);
       break;
     case 'X': case 'BONUS':
-      glassStraight(g, true, mode);
-      glassStraight(g, false, mode);
+      glassCross(g, mode);
       break;
     default:
       break;
