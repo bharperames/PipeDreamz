@@ -35,6 +35,7 @@ export class App {
   private session: Session | null = null;
   private lastFrame = 0;
   private audioUnlocked = false;
+  private lastMusicVol = 0.35;
 
   constructor() {
     const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -261,9 +262,25 @@ export class App {
         onEasyToggle: (on) => {
           s.easy = on;
         },
+        musicOn: () => this.music.volume > 0,
+        toggleMusic: () => this.toggleMusic(),
       },
       s.totals,
     );
+  }
+
+  /** Flip music on/off, restoring the previous (or default) volume. */
+  private toggleMusic(): boolean {
+    if (this.music.volume > 0) {
+      this.lastMusicVol = this.music.volume;
+      this.music.setVolume(0);
+      saveSettings({ musicVol: 0 });
+      return false;
+    }
+    const vol = this.lastMusicVol > 0 ? this.lastMusicVol : 0.35;
+    this.music.setVolume(vol);
+    saveSettings({ musicVol: vol });
+    return true;
   }
 
   // ---------- round end / tally ----------

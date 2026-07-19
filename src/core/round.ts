@@ -81,13 +81,16 @@ export class GameRound {
 
     this.easyQueue = config.easyQueue ?? false;
     const bias: BiasProvider = () => (this.easyQueue ? this.neededWeights() : null);
+    // Easy mode uses a shallower queue so biased pieces reach the
+    // player's hand sooner (less conveyor-belt delay, less visual noise).
+    const basicDepth = this.easyQueue ? 3 : 5;
     this.queues =
       config.mode === 'expert'
         ? [
             new DispenserQueue(rng, 3, this.level.pieceWeights, bias),
             new DispenserQueue(rng, 3, this.level.pieceWeights, bias),
           ]
-        : [new DispenserQueue(rng, 5, this.level.pieceWeights, bias)];
+        : [new DispenserQueue(rng, basicDepth, this.level.pieceWeights, bias)];
 
     this.flow = new FlowSim(this.level, this.grid);
   }
@@ -134,21 +137,65 @@ export class GameRound {
     return null;
   }
 
-  /** Weights boosting pieces that accept `entry` at the gap position. */
+  /**
+   * Weights for the gap the flow is heading toward:
+   *  - non-fitting pieces are starved (0.4);
+   *  - fitting pieces are boosted (4), more if their exit stays open (8),
+   *    most if the exit CONNECTS into an already-placed unfilled pipe or
+   *    the end tank near the action (16) — the piece the player is
+   *    usually wishing for;
+   *  - kinds the player has "discarded" (placed unfilled 3+ tiles from
+   *    the flow front) are damped, as are kinds already sitting in the
+   *    queue, to cut duplicate spam.
+   */
   private weightsForGap(pos: GridPos, entry: Dir): PieceWeights {
     const weights: PieceWeights = { ...DEFAULT_WEIGHTS };
+    for (const kind of PLACEABLE_KINDS) weights[kind] = 0.4;
+
     for (const kind of PLACEABLE_KINDS) {
       const ch = findChannel(kind, entry);
       if (ch === null) continue;
-      weights[kind] = 4;
-      // Prefer pieces whose exit leads to an empty cell or the end tank.
+      let w = 4;
       const exitDir = channelExit(kind, ch, entry);
       const next = this.grid.neighbor(pos, exitDir);
       if (next) {
         const target = this.grid.get(next.pos);
-        if (!target || target.kind === 'END') weights[kind] = 8;
+        if (!target) {
+          w = 8;
+        } else if (target.kind === 'END') {
+          w = 16;
+        } else if (
+          !target.fixed &&
+          findChannel(target.kind, opposite(exitDir)) !== null &&
+          !target.channels.every((c) => c.filled)
+        ) {
+          // Exit links the flow into the player's built network.
+          w = 16;
+        }
+      }
+      weights[kind] = w;
+    }
+
+    // Discard penalty: unfilled player pieces far from the flow front
+    // signal kinds the player didn't want — deal fewer of them.
+    const front = this.flow?.head?.pos ?? this.level.start.pos;
+    this.grid.forEach((piece, p) => {
+      if (piece.owner === null) return;
+      if (piece.channels.some((c) => c.filled)) return;
+      const kind = piece.kind as keyof PieceWeights;
+      if (!(kind in weights)) return;
+      const dist = Math.abs(p.x - front.x) + Math.abs(p.y - front.y);
+      if (dist >= 3) weights[kind] = Math.max(0.15, weights[kind] * 0.6);
+    });
+
+    // Duplicate damping: each copy already visible in the queue makes
+    // the next roll of that kind less likely.
+    for (const q of this.queues ?? []) {
+      for (const kind of q.peek()) {
+        weights[kind] = Math.max(0.15, weights[kind] * 0.65);
       }
     }
+
     return weights;
   }
 

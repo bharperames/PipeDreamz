@@ -20,6 +20,10 @@ export interface PlayingCallbacks {
   onQuit(): void;
   /** Live easy-queue switch changed; lets the session remember it. */
   onEasyToggle?(on: boolean): void;
+  /** Current music state for the HUD chip. */
+  musicOn?(): boolean;
+  /** Toggle music; returns the new state. */
+  toggleMusic?(): boolean;
 }
 
 export class PlayingScreen {
@@ -106,6 +110,12 @@ export class PlayingScreen {
   }
 
   onMouseDown(e: MouseEvent): void {
+    // Music chip works even while paused or after the round ends.
+    if (this.renderer.hitMusicSwitch(e.clientX, e.clientY)) {
+      this.callbacks.toggleMusic?.();
+      this.sfx.play('menu');
+      return;
+    }
     if (this.paused || this.round.over) return;
     if (this.renderer.hitEasySwitch(e.clientX, e.clientY)) {
       this.round.easyQueue = !this.round.easyQueue;
@@ -214,6 +224,7 @@ export class PlayingScreen {
       progressFrac: Math.min(1, round.flow.pipesFilled / round.level.distance),
       paused: this.paused,
       fastFlow: round.flow.fastForward,
+      musicOn: this.callbacks.musicOn?.(),
     });
     r.present();
   }

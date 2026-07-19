@@ -48,6 +48,8 @@ export interface HudState {
   progressFrac: number;
   paused: boolean;
   fastFlow: boolean;
+  /** Draws the clickable music chip in the upper right when defined. */
+  musicOn?: boolean;
 }
 
 /**
@@ -216,14 +218,27 @@ export class Renderer2D {
   }
 
   private easySwitch: { x: number; y: number; w: number; h: number } | null = null;
+  private musicSwitch: { x: number; y: number; w: number; h: number } | null = null;
+
+  private hitRect(
+    rect: { x: number; y: number; w: number; h: number } | null,
+    clientX: number,
+    clientY: number,
+  ): boolean {
+    if (!rect) return false;
+    const lx = (clientX - this.offX) / this.scale;
+    const ly = (clientY - this.offY) / this.scale;
+    return lx >= rect.x && lx <= rect.x + rect.w && ly >= rect.y && ly <= rect.y + rect.h;
+  }
 
   /** Whether a client-coordinate point hits the easy-queue switch. */
   hitEasySwitch(clientX: number, clientY: number): boolean {
-    if (!this.easySwitch) return false;
-    const lx = (clientX - this.offX) / this.scale;
-    const ly = (clientY - this.offY) / this.scale;
-    const s = this.easySwitch;
-    return lx >= s.x && lx <= s.x + s.w && ly >= s.y && ly <= s.y + s.h;
+    return this.hitRect(this.easySwitch, clientX, clientY);
+  }
+
+  /** Whether a client-coordinate point hits the music chip. */
+  hitMusicSwitch(clientX: number, clientY: number): boolean {
+    return this.hitRect(this.musicSwitch, clientX, clientY);
   }
 
   /** Dispenser box(es) in the left column; next piece at the bottom. */
@@ -393,8 +408,36 @@ export class Renderer2D {
     this.inset(x, digY, 7 * 14 - 2, 20);
     this.ledNumber(x + 2, digY, s.score2 ?? 0, 7, PAL.ledGreen);
 
-    // right-aligned L and D readouts
-    const dNumX = this.bufW - 20 - 26;
+    // Music chip in the far upper right (clickable), then L and D.
+    let rightEdge = this.bufW - 20;
+    if (s.musicOn !== undefined) {
+      const mw = 30;
+      const mx = this.bufW - 12 - mw;
+      const my = 8;
+      g.fillStyle = PAL.black;
+      g.fillRect(mx - 2, my - 2, mw + 4, 28);
+      g.fillStyle = s.musicOn ? '#12240f' : '#181c20';
+      g.fillRect(mx, my, mw, 24);
+      g.strokeStyle = s.musicOn ? PAL.flooz : '#4c5258';
+      g.lineWidth = 2;
+      g.strokeRect(mx + 1, my + 1, mw - 2, 22);
+      g.font = `bold 18px 'Courier New', monospace`;
+      g.textBaseline = 'top';
+      g.fillStyle = s.musicOn ? PAL.floozHi : '#8a949e';
+      g.fillText('♪', mx + 9, my + 2);
+      if (!s.musicOn) {
+        g.strokeStyle = '#8a949e';
+        g.beginPath();
+        g.moveTo(mx + 5, my + 20);
+        g.lineTo(mx + mw - 5, my + 4);
+        g.stroke();
+      }
+      this.musicSwitch = { x: mx - 2, y: my - 2, w: mw + 4, h: 28 };
+      rightEdge = mx - 14;
+    } else {
+      this.musicSwitch = null;
+    }
+    const dNumX = rightEdge - 26;
     this.inset(dNumX, digY, 28, 20);
     this.ledNumber(dNumX + 2, digY, s.pipesLeft, 2, PAL.ledBlue);
     this.label('D:', dNumX - 30, labY, PAL.white);
