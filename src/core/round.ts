@@ -1,14 +1,19 @@
 import { FlowSim, FlowTickEvent } from './flow';
 import { Grid } from './grid';
-import { DispenserQueue } from './queue';
+import { channelExit, findChannel } from './pieces';
+import { BiasProvider, DEFAULT_WEIGHTS, DispenserQueue } from './queue';
 import { Rng } from './rng';
 import { fillPoints, SCORE } from './scoring';
 import {
+  Dir,
   GameAction,
   GameEvent,
   GameMode,
   GridPos,
   LevelDef,
+  opposite,
+  PieceWeights,
+  PLACEABLE_KINDS,
   PlacedPiece,
   PlayerId,
   RoundResult,
@@ -26,6 +31,12 @@ export interface GameRoundConfig {
   players: 1 | 2;
   /** Training mode: multiplies delay and fill durations (e.g. 1.75). */
   timeScale?: number;
+  /**
+   * Easy mode: the dispenser is biased toward pieces that extend the
+   * current pipeline (the round solves the path to its first gap and
+   * boosts pieces that fit there).
+   */
+  easyQueue?: boolean;
 }
 
 interface PieceMeta {
@@ -66,15 +77,78 @@ export class GameRound {
       this.grid.set(f.pos, this.grid.makePiece(f.kind, null, true, 0));
     }
 
+    const bias: BiasProvider | undefined = config.easyQueue
+      ? () => this.neededWeights()
+      : undefined;
     this.queues =
       config.mode === 'expert'
         ? [
-            new DispenserQueue(rng, 3, this.level.pieceWeights),
-            new DispenserQueue(rng, 3, this.level.pieceWeights),
+            new DispenserQueue(rng, 3, this.level.pieceWeights, bias),
+            new DispenserQueue(rng, 3, this.level.pieceWeights, bias),
           ]
-        : [new DispenserQueue(rng, 5, this.level.pieceWeights)];
+        : [new DispenserQueue(rng, 5, this.level.pieceWeights, bias)];
 
     this.flow = new FlowSim(this.level, this.grid);
+  }
+
+  /**
+   * Easy-mode solver: follow the pipeline from the flow head (or the
+   * start piece before flow begins) through placed pieces to the first
+   * gap, and boost the pieces that would fit that gap — strongest for
+   * pieces whose exit also leads somewhere useful.
+   */
+  private neededWeights(): PieceWeights | null {
+    let pos: GridPos;
+    let exit: Dir;
+    const head = this.flow?.head;
+    if (head && this.flow.state === 'flowing') {
+      const piece = this.grid.get(head.pos)!;
+      pos = head.pos;
+      exit =
+        piece.kind === 'START'
+          ? this.level.start.exit
+          : channelExit(piece.kind, head.channelIdx, head.entryDir);
+    } else {
+      pos = this.level.start.pos;
+      exit = this.level.start.exit;
+    }
+
+    const seen = new Set<string>();
+    for (let i = 0; i < this.level.gridW * this.level.gridH * 2; i++) {
+      const step = this.grid.neighbor(pos, exit);
+      if (!step) return null; // heading off the board: no piece helps
+      const piece = this.grid.get(step.pos);
+      if (!piece) return this.weightsForGap(step.pos, opposite(exit));
+      if (piece.kind === 'OBSTACLE' || piece.kind === 'START') return null;
+      if (piece.kind === 'END') return null; // pipeline already complete
+      const entry = opposite(exit);
+      const ch = findChannel(piece.kind, entry);
+      if (ch === null || piece.channels[ch]!.filled) return null;
+      const key = `${step.pos.x},${step.pos.y}:${ch}`;
+      if (seen.has(key)) return null;
+      seen.add(key);
+      exit = channelExit(piece.kind, ch, entry);
+      pos = step.pos;
+    }
+    return null;
+  }
+
+  /** Weights boosting pieces that accept `entry` at the gap position. */
+  private weightsForGap(pos: GridPos, entry: Dir): PieceWeights {
+    const weights: PieceWeights = { ...DEFAULT_WEIGHTS };
+    for (const kind of PLACEABLE_KINDS) {
+      const ch = findChannel(kind, entry);
+      if (ch === null) continue;
+      weights[kind] = 4;
+      // Prefer pieces whose exit leads to an empty cell or the end tank.
+      const exitDir = channelExit(kind, ch, entry);
+      const next = this.grid.neighbor(pos, exitDir);
+      if (next) {
+        const target = this.grid.get(next.pos);
+        if (!target || target.kind === 'END') weights[kind] = 8;
+      }
+    }
+    return weights;
   }
 
   apply(action: GameAction): GameEvent[] {

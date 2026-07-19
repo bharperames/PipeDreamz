@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DispenserQueue } from '../src/core/queue';
+import { GameRound } from '../src/core/round';
 import { mulberry32 } from '../src/core/rng';
 import { PLACEABLE_KINDS } from '../src/core/types';
+import { makeLevel } from './helpers';
 
 describe('DispenserQueue', () => {
   it('maintains its depth as pieces are taken', () => {
@@ -18,6 +20,24 @@ describe('DispenserQueue', () => {
     const seqA = Array.from({ length: 100 }, () => a.take());
     const seqB = Array.from({ length: 100 }, () => b.take());
     expect(seqA).toEqual(seqB);
+  });
+
+  it('easy queue biases toward pieces the pipeline needs', () => {
+    // Start at (1,3) exiting E onto an empty board: the gap is entered
+    // from W, so H / NW / SW / X should dominate the dispenser.
+    const level = makeLevel({ delayMs: 600000 });
+    const round = new GameRound(
+      { level, mode: 'basic', seed: 5, players: 1, easyQueue: true },
+      mulberry32(5),
+    );
+    const accepting = new Set(['H', 'NW', 'SW', 'X']);
+    let hits = 0;
+    const total = 300;
+    for (let i = 0; i < total; i++) {
+      if (accepting.has(round.queues[0]!.take())) hits++;
+    }
+    // Uniform would give ~57%; the bias should push well past 80%.
+    expect(hits / total).toBeGreaterThan(0.8);
   });
 
   it('produces only placeable kinds with roughly uniform spread', () => {

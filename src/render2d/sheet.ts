@@ -170,6 +170,8 @@ export interface ExtractOpts {
    * its grid cell, so pipe ends reach the cell border and connect.
    */
   overscan?: number;
+  /** High-quality smoothing while scaling (smooth render mode). */
+  smooth?: boolean;
 }
 
 /** Crop a rect from a sheet and scale it to (outW,outH), pixelated. */
@@ -221,9 +223,10 @@ export function extract(
     crop = rot;
   }
 
-  // 4. scale to output (optionally overscanned), nearest-neighbor
+  // 4. scale to output (optionally overscanned)
   const og = out.getContext('2d')!;
-  og.imageSmoothingEnabled = false;
+  og.imageSmoothingEnabled = opts.smooth ?? false;
+  if (opts.smooth) og.imageSmoothingQuality = 'high';
   const ov = opts.overscan ?? 0;
   og.drawImage(
     crop,

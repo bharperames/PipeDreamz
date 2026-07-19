@@ -13,6 +13,8 @@ export interface Settings {
   musicVol: number;
   sfxVol: number;
   scanlines: boolean;
+  /** 'retro' = pixelated 1x framebuffer; 'smooth' = high-res vector feel. */
+  renderMode: 'retro' | 'smooth';
 }
 
 interface Store {
@@ -22,7 +24,7 @@ interface Store {
 
 const DEFAULTS: Store = {
   highScores: { basic: [], expert: [], competitive: [] },
-  settings: { musicVol: 0.35, sfxVol: 0.5, scanlines: true },
+  settings: { musicVol: 0.35, sfxVol: 0.5, scanlines: true, renderMode: 'smooth' },
 };
 
 function load(): Store {

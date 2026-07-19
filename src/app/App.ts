@@ -17,6 +17,8 @@ import { PlayingScreen } from './screens/PlayingScreen';
 interface Session {
   mode: GameMode;
   training: boolean;
+  /** Easy mode: dispenser biased toward pieces the pipeline needs. */
+  easy: boolean;
   levelIndex: number; // 0-based
   totals: [number, number];
   seedBase: number;
@@ -42,7 +44,8 @@ export class App {
     const settings = getSettings();
     this.sfx.volume = settings.sfxVol;
     this.music.volume = settings.musicVol;
-    document.getElementById('scanlines')!.classList.toggle('off', !settings.scanlines);
+    this.renderer.setRenderMode(settings.renderMode ?? 'smooth');
+    this.applyScanlines();
 
     const unlock = () => {
       if (this.audioUnlocked) return;
@@ -110,6 +113,26 @@ export class App {
     return (['game1', 'game2', 'game3', 'game4'] as const)[Math.min(3, Math.floor(levelIndex / 9))]!;
   }
 
+  /** Scanlines only make sense over the retro pixel framebuffer. */
+  private applyScanlines(): void {
+    const s = getSettings();
+    document
+      .getElementById('scanlines')!
+      .classList.toggle('off', !s.scanlines || s.renderMode !== 'retro');
+  }
+
+  private newSession(overrides: Partial<Session> = {}): Session {
+    return {
+      mode: 'basic',
+      training: false,
+      easy: false,
+      levelIndex: 0,
+      totals: [0, 0],
+      seedBase: (Date.now() % 100000) + 7,
+      ...overrides,
+    };
+  }
+
   // ---------- title ----------
 
   showTitle(): void {
@@ -122,14 +145,21 @@ export class App {
       <div class="title-logo">PIPEDREAMZ</div>
       <div class="title-sub">an original tribute to the classic 1989 pipe-building puzzle</div>
       <div class="menu-list">
-        <button data-act="play">START GAME</button>
-        <button data-act="scores">HIGH SCORES</button>
-        <button data-act="settings">OPTIONS</button>
+        <button data-act="start" class="primary">START</button>
       </div>
-      <div class="menu-note">Build a pipeline before the flooz starts flowing.<br/>
-      Longer pipelines, crossovers and reservoirs score more.</div>
+      <div class="menu-secondary">
+        <a data-act="modes">modes</a> ·
+        <a data-act="scores">high scores</a> ·
+        <a data-act="settings">options</a>
+      </div>
+      <div class="menu-note">Build a pipeline before the flooz starts flowing.</div>
     `);
-    el.querySelector('[data-act=play]')!.addEventListener('click', () => {
+    el.querySelector('[data-act=start]')!.addEventListener('click', () => {
+      this.sfx.play('menu');
+      this.session = this.newSession();
+      this.startRound();
+    });
+    el.querySelector('[data-act=modes]')!.addEventListener('click', () => {
       this.sfx.play('menu');
       this.showModeSelect();
     });
@@ -147,6 +177,7 @@ export class App {
 
   private showModeSelect(): void {
     let training = false;
+    let easy = false;
     const el = this.menu(`
       <h2 class="panel-heading">SELECT MODE</h2>
       <div class="menu-list">
@@ -154,11 +185,13 @@ export class App {
         <button data-mode="expert">EXPERT ONE-PLUMBER</button>
         <button data-mode="competitive">COMPETITIVE TWO-PLUMBER</button>
         <button data-act="training">TRAINING: OFF</button>
+        <button data-act="easy">EASY QUEUE: OFF</button>
         <button data-act="back">BACK</button>
       </div>
       <div class="menu-note">Basic: one dispenser, five pieces queued.<br/>
       Expert: two dispensers — alternate them for bonus points.<br/>
-      Competitive: P2 uses WASD + Q. Training: slower flooz.</div>
+      Competitive: P2 uses WASD + Q. Training: slower flooz.<br/>
+      Easy queue: the dispenser favors pieces your pipeline needs.</div>
     `);
     const trainingBtn = el.querySelector('[data-act=training]') as HTMLButtonElement;
     trainingBtn.addEventListener('click', () => {
@@ -166,18 +199,18 @@ export class App {
       trainingBtn.textContent = `TRAINING: ${training ? 'ON' : 'OFF'}`;
       this.sfx.play('menu');
     });
+    const easyBtn = el.querySelector('[data-act=easy]') as HTMLButtonElement;
+    easyBtn.addEventListener('click', () => {
+      easy = !easy;
+      easyBtn.textContent = `EASY QUEUE: ${easy ? 'ON' : 'OFF'}`;
+      this.sfx.play('menu');
+    });
     el.querySelector('[data-act=back]')!.addEventListener('click', () => this.showTitle());
     el.querySelectorAll('[data-mode]').forEach((btn) => {
       btn.addEventListener('click', () => {
         this.sfx.play('menu');
         const mode = (btn as HTMLElement).dataset.mode as GameMode;
-        this.session = {
-          mode,
-          training,
-          levelIndex: 0,
-          totals: [0, 0],
-          seedBase: (Date.now() % 100000) + 7,
-        };
+        this.session = this.newSession({ mode, training, easy });
         this.showLevelIntro();
       });
     });
@@ -221,6 +254,7 @@ export class App {
       s.mode,
       s.seedBase + s.levelIndex * 1013,
       s.training,
+      s.easy,
       {
         onRoundOver: (result) => this.showRoundEnd(result),
         onQuit: () => this.showTitle(),
@@ -416,10 +450,19 @@ export class App {
       <div class="menu-list">
         <button data-act="music">MUSIC VOLUME: ${Math.round(settings.musicVol * 100)}%</button>
         <button data-act="sfx">SFX VOLUME: ${Math.round(settings.sfxVol * 100)}%</button>
+        <button data-act="gfx">GRAPHICS: ${(settings.renderMode ?? 'smooth').toUpperCase()}</button>
         <button data-act="scan">SCANLINES: ${settings.scanlines ? 'ON' : 'OFF'}</button>
         <button data-act="back">BACK</button>
       </div>
     `);
+    el.querySelector('[data-act=gfx]')!.addEventListener('click', (ev) => {
+      const mode = (getSettings().renderMode ?? 'smooth') === 'smooth' ? 'retro' : 'smooth';
+      saveSettings({ renderMode: mode });
+      this.renderer.setRenderMode(mode);
+      this.applyScanlines();
+      this.sfx.play('menu');
+      (ev.target as HTMLElement).textContent = `GRAPHICS: ${mode.toUpperCase()}`;
+    });
     el.querySelector('[data-act=music]')!.addEventListener('click', (ev) => {
       const v = (Math.round(getSettings().musicVol * 100) + 20) % 120;
       saveSettings({ musicVol: v / 100 });
@@ -436,7 +479,7 @@ export class App {
     el.querySelector('[data-act=scan]')!.addEventListener('click', (ev) => {
       const on = !getSettings().scanlines;
       saveSettings({ scanlines: on });
-      document.getElementById('scanlines')!.classList.toggle('off', !on);
+      this.applyScanlines();
       (ev.target as HTMLElement).textContent = `SCANLINES: ${on ? 'ON' : 'OFF'}`;
     });
     el.querySelector('[data-act=back]')!.addEventListener('click', () => this.showTitle());

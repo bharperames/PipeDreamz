@@ -12,6 +12,13 @@ export const DEFAULT_WEIGHTS: PieceWeights = {
 };
 
 /**
+ * Easy-mode hook: called at each roll; returning weights biases the next
+ * piece (e.g. toward pieces that extend the current pipeline). Returning
+ * null falls back to the queue's static weights.
+ */
+export type BiasProvider = () => PieceWeights | null;
+
+/**
  * A dispenser of upcoming pipe pieces. The bottom (index 0) piece is the
  * next one that must be placed; taking it shifts the queue down and a new
  * random piece appears at the top.
@@ -23,16 +30,18 @@ export class DispenserQueue {
     private rng: Rng,
     readonly depth: number,
     private weights: PieceWeights = DEFAULT_WEIGHTS,
+    private bias?: BiasProvider,
   ) {
     for (let i = 0; i < depth; i++) this.items.push(this.roll());
   }
 
   private roll(): PlaceableKind {
+    const weights = this.bias?.() ?? this.weights;
     let total = 0;
-    for (const k of PLACEABLE_KINDS) total += this.weights[k];
+    for (const k of PLACEABLE_KINDS) total += weights[k];
     let r = this.rng.next() * total;
     for (const k of PLACEABLE_KINDS) {
-      r -= this.weights[k];
+      r -= weights[k];
       if (r < 0) return k;
     }
     return 'X';

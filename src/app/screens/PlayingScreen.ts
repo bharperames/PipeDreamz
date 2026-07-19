@@ -36,6 +36,7 @@ export class PlayingScreen {
     mode: GameMode,
     seed: number,
     training: boolean,
+    easyQueue: boolean,
     private callbacks: PlayingCallbacks,
     private totals: [number, number],
   ) {
@@ -46,6 +47,7 @@ export class PlayingScreen {
         seed,
         players: mode === 'competitive' ? 2 : 1,
         timeScale: training ? 1.75 : 1,
+        easyQueue,
       },
       mulberry32(seed),
     );

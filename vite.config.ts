@@ -5,7 +5,14 @@ function assetSheetAlias(): Plugin {
   return {
     name: 'pipedreamz-asset-alias',
     configureServer(server) {
-      server.middlewares.use((req, _res, next) => {
+      server.middlewares.use((req, res, next) => {
+        // /PipeDreamz without a trailing slash: redirect like Pages would.
+        if (req.url === '/PipeDreamz') {
+          res.statusCode = 301;
+          res.setHeader('Location', '/PipeDreamz/');
+          res.end();
+          return;
+        }
         if (req.url?.startsWith('/PipeDreamz_assets')) {
           req.url = '/PipeDreamz/?assets';
         }

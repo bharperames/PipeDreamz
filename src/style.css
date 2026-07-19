@@ -222,6 +222,36 @@ body {
   line-height: 1.7;
 }
 
+.menu-list button.primary {
+  font-size: 26px;
+  letter-spacing: 6px;
+  padding: 18px;
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.menu-list button.primary:hover {
+  background: #274a2e;
+}
+
+.menu-secondary {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #9aa3ad;
+  letter-spacing: 1px;
+}
+
+.menu-secondary a {
+  cursor: pointer;
+  color: #b8c3b8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.menu-secondary a:hover {
+  color: var(--green);
+}
+
 h2.panel-heading {
   font-size: 28px;
   letter-spacing: 3px;

@@ -363,12 +363,14 @@ export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): vo
     if (!plateBitmaps) {
       // Dark girder-lattice background cells; a few variants for texture.
       plateBitmaps = LATTICE_CLEAN_CELLS.map(([c, r]) =>
-        extract('lattice', latticeCellRect(c, r), CELL, CELL),
+        extract('lattice', latticeCellRect(c, r), CELL * QUALITY, CELL * QUALITY, {
+          smooth: QUALITY > 1,
+        }),
       );
     }
     // Deterministic per-cell variant so the board doesn't shimmer.
     const idx = Math.abs((x * 7 + y * 13) | 0) % plateBitmaps.length;
-    g.drawImage(plateBitmaps[idx]!, x, y);
+    g.drawImage(plateBitmaps[idx]!, x, y, CELL, CELL);
     return;
   }
   // groove between plates
@@ -421,6 +423,37 @@ export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): vo
 }
 
 const spriteCache = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Render quality multiplier. 1 = retro (pixelated framebuffer); higher
+ * values rasterize the procedural vector art at that multiple for the
+ * smooth high-res mode. All drawing code works in logical 48px cell
+ * coordinates; quality only changes the backing resolution.
+ */
+let QUALITY = 1;
+
+export function renderQuality(): number {
+  return QUALITY;
+}
+
+export function setRenderQuality(q: number): void {
+  if (q === QUALITY) return;
+  QUALITY = q;
+  spriteCache.clear();
+  plateBitmaps = null;
+  heroBitmaps.clear();
+  floozScratch = null;
+}
+
+/** Sprite canvas backed at QUALITY resolution, drawn in logical coords. */
+function makePieceCanvas(): { c: HTMLCanvasElement; g: CanvasRenderingContext2D } {
+  const c = document.createElement('canvas');
+  c.width = CELL * QUALITY;
+  c.height = CELL * QUALITY;
+  const g = c.getContext('2d')!;
+  g.scale(QUALITY, QUALITY);
+  return { c, g };
+}
 
 // ---------- SVG-spec hollow glass & brass pipes ----------
 // Materials ported from the user's pipe.svg definition: the glass tube is
@@ -664,24 +697,7 @@ function brassCollar(g: CanvasRenderingContext2D, side: Dir): void {
   g.strokeStyle = OUTLINE;
   g.lineWidth = 2;
   g.strokeRect(x + 0.5, y + 0.5, rw - 1, rh - 1);
-
-  // Four rivets per collar (per the v3 rivet layout).
-  const rivet = (rx: number, ry: number) => {
-    g.fillStyle = '#4a3018';
-    g.beginPath();
-    g.arc(rx, ry, 2.2, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#e8c282';
-    g.beginPath();
-    g.arc(rx, ry, 1.5, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = 'rgba(255,255,255,0.7)';
-    g.fillRect(rx - 1, ry - 1, 1, 1);
-  };
-  for (const off of [-10, -4, 4, 10]) {
-    if (horizontal) rivet(c + off, side === 0 ? t / 2 : CELL - t / 2);
-    else rivet(side === 3 ? t / 2 : CELL - t / 2, c + off);
-  }
+  // No rivets: clean collars read better at game scale.
 }
 
 /** Glass stub from a cell edge to the center (drawn under housings). */
@@ -736,10 +752,7 @@ function brassCanister(g: CanvasRenderingContext2D, horizontal: boolean, filled:
 
 /** SVG-spec piece: exact geometry, flush half-collar joints, hollow glass. */
 function glassPiece(kind: PieceKind, filled: boolean): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width = CELL;
-  c.height = CELL;
-  const g = c.getContext('2d')!;
+  const { c, g } = makePieceCanvas();
   const mode: GlassMode = filled ? 'filled' : kind === 'BONUS' ? 'gold' : 'empty';
 
   switch (kind) {
@@ -837,20 +850,22 @@ function housingPiece(
   startExit?: Dir,
 ): HTMLCanvasElement | null {
   if (!sheetsReady()) return null;
-  if (kind === 'OBSTACLE') return extract('ref', REF.plateRust!, CELL, CELL);
+  const smooth = QUALITY > 1;
+  if (kind === 'OBSTACLE') {
+    return extract('ref', REF.plateRust!, CELL * QUALITY, CELL * QUALITY, { smooth });
+  }
   const crop = pieceCrop(kind, startExit)!;
-  const c = document.createElement('canvas');
-  c.width = CELL;
-  c.height = CELL;
-  const g = c.getContext('2d')!;
+  const { c, g } = makePieceCanvas();
   const sides: Dir[] = kind === 'END' ? [0, 1, 2, 3] : startExit !== undefined ? [startExit] : [];
   for (const s of sides) glassStub(g, s, filled);
-  const art = extract(filled ? 'filled' : 'pipes', pipeCellRect(crop.col, crop.row), CELL, CELL, {
-    key: true,
-    overscan: 2,
-    rotate: crop.rotate,
-  });
-  g.drawImage(art, 0, 0);
+  const art = extract(
+    filled ? 'filled' : 'pipes',
+    pipeCellRect(crop.col, crop.row),
+    CELL * QUALITY,
+    CELL * QUALITY,
+    { key: true, overscan: 2 * QUALITY, rotate: crop.rotate, smooth },
+  );
+  g.drawImage(art, 0, 0, CELL, CELL);
   pieceOverlays(g, kind, startExit);
   return c;
 }
@@ -879,10 +894,9 @@ export function pieceSprite(kind: PieceKind, startExit?: Dir): HTMLCanvasElement
     c = housingPiece(kind, false, startExit);
   }
   if (!c) {
-    c = document.createElement('canvas');
-    c.width = CELL;
-    c.height = CELL;
-    drawPiece(c.getContext('2d')!, kind, startExit);
+    const made = makePieceCanvas();
+    drawPiece(made.g, kind, startExit);
+    c = made.c;
   }
   spriteCache.set(key, c);
   return c;
@@ -950,22 +964,24 @@ export function drawFlooz(
     if (filled) {
       // Housings/tanks: fade the whole filled sprite in as they fill.
       if (kind === 'START' || kind === 'END') {
-        if (progress > 0.25) g.drawImage(filled, 0, 0);
+        if (progress > 0.25) g.drawImage(filled, 0, 0, CELL, CELL);
         return;
       }
       // Single-channel piece fully filled: draw whole sprite (full halo).
       const multiChannel = kind === 'X' || kind === 'BONUS';
       if (progress >= 1 && !multiChannel) {
-        g.drawImage(filled, 0, 0);
+        g.drawImage(filled, 0, 0, CELL, CELL);
         glowAlongPath(g, kind, ch, 1, reversed);
         return;
       }
+      const q = renderQuality();
       if (!floozScratch) {
         floozScratch = document.createElement('canvas');
-        floozScratch.width = CELL;
-        floozScratch.height = CELL;
+        floozScratch.width = CELL * q;
+        floozScratch.height = CELL * q;
       }
       const sg = floozScratch.getContext('2d')!;
+      sg.setTransform(q, 0, 0, q, 0, 0);
       sg.globalCompositeOperation = 'source-over';
       sg.clearRect(0, 0, CELL, CELL);
       sg.strokeStyle = '#ffffff';
@@ -982,8 +998,8 @@ export function drawFlooz(
       }
       sg.stroke();
       sg.globalCompositeOperation = 'source-in';
-      sg.drawImage(filled, 0, 0);
-      g.drawImage(floozScratch, 0, 0);
+      sg.drawImage(filled, 0, 0, CELL, CELL);
+      g.drawImage(floozScratch, 0, 0, CELL, CELL);
       glowAlongPath(g, kind, ch, progress, reversed);
       return;
     }
@@ -1030,12 +1046,16 @@ const heroBitmaps = new Map<number, HTMLCanvasElement>();
 /** Mascot at an arbitrary height so he can fit below the dispenser. */
 export function drawMascot(g: CanvasRenderingContext2D, x: number, y: number, h = 96): void {
   if (sheetsReady()) {
+    const w = Math.round(h * 0.63);
     let hero = heroBitmaps.get(h);
     if (!hero) {
-      hero = extract('ref', REF.heroStand!, Math.round(h * 0.63), h, { key: true });
+      hero = extract('ref', REF.heroStand!, w * QUALITY, h * QUALITY, {
+        key: true,
+        smooth: QUALITY > 1,
+      });
       heroBitmaps.set(h, hero);
     }
-    g.drawImage(hero, x, y);
+    g.drawImage(hero, x, y, w, h);
     return;
   }
   if (h < 88) return; // procedural mascot has a fixed 96px frame

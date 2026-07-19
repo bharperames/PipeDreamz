@@ -1,7 +1,17 @@
 import { DispenserQueue } from '../core/queue';
 import { Dir, GridPos, LevelDef } from '../core/types';
-import { CELL, drawFlooz, drawMascot, drawPlate, PAL, pieceSprite } from './sprites';
+import {
+  CELL,
+  drawFlooz,
+  drawMascot,
+  drawPlate,
+  PAL,
+  pieceSprite,
+  setRenderQuality,
+} from './sprites';
 import { extract, refDigitRect, sheetsReady } from './sheet';
+
+export type RenderMode = 'retro' | 'smooth';
 
 const HUD_H = 40;
 const LEFT_W = 80;
@@ -62,6 +72,10 @@ export class Renderer2D {
   private offX = 0;
   private offY = 0;
 
+  /** retro = 1x framebuffer, pixelated; smooth = 3x, smooth scaling. */
+  mode: RenderMode = 'retro';
+  private quality = 1;
+
   constructor(private canvas: HTMLCanvasElement) {
     this.buffer = document.createElement('canvas');
     this.g = this.buffer.getContext('2d')!;
@@ -70,14 +84,22 @@ export class Renderer2D {
     this.setBoardSize(10, 7);
   }
 
+  setRenderMode(mode: RenderMode): void {
+    this.mode = mode;
+    this.quality = mode === 'smooth' ? 3 : 1;
+    setRenderQuality(this.quality);
+    this.digitCache.clear();
+    this.setBoardSize(this.level.gridW, this.level.gridH);
+  }
+
   setBoardSize(gridW: number, gridH: number): void {
     this.level = { gridW, gridH };
     this.bufW = GAP + LEFT_W + GAP + gridW * CELL + GAP + BAR_W + GAP;
     this.bufH = HUD_H + GAP + gridH * CELL + GAP;
     this.boardX = GAP + LEFT_W + GAP;
     this.boardY = HUD_H + GAP;
-    this.buffer.width = this.bufW;
-    this.buffer.height = this.bufH;
+    this.buffer.width = this.bufW * this.quality;
+    this.buffer.height = this.bufH * this.quality;
     this.fit();
   }
 
@@ -86,10 +108,11 @@ export class Renderer2D {
     const h = window.innerHeight;
     this.canvas.width = w;
     this.canvas.height = h;
-    this.scale = Math.max(1, Math.floor(Math.min(w / this.bufW, h / this.bufH)));
+    const raw = Math.min(w / this.bufW, h / this.bufH);
+    // Retro snaps to integer scale for a clean pixel grid; smooth fits.
+    this.scale = this.mode === 'retro' ? Math.max(1, Math.floor(raw)) : raw;
     this.offX = Math.floor((w - this.bufW * this.scale) / 2);
     this.offY = Math.floor((h - this.bufH * this.scale) / 2);
-    this.out.imageSmoothingEnabled = false;
   }
 
   // ---------- coordinate mapping ----------
@@ -109,6 +132,7 @@ export class Renderer2D {
   begin(): void {
     this.frameCount++;
     const g = this.g;
+    g.setTransform(this.quality, 0, 0, this.quality, 0, 0);
     g.fillStyle = PAL.black;
     g.fillRect(0, 0, this.bufW, this.bufH);
   }
@@ -153,10 +177,10 @@ export class Renderer2D {
     if (opts.alpha !== undefined && opts.alpha < 1) {
       g.save();
       g.globalAlpha = opts.alpha;
-      g.drawImage(pieceSprite(kind, opts.startExit), o.x, o.y);
+      g.drawImage(pieceSprite(kind, opts.startExit), o.x, o.y, CELL, CELL);
       g.restore();
     } else {
-      g.drawImage(pieceSprite(kind, opts.startExit), o.x, o.y);
+      g.drawImage(pieceSprite(kind, opts.startExit), o.x, o.y, CELL, CELL);
     }
   }
 
@@ -211,7 +235,7 @@ export class Renderer2D {
         const sy = y + 8 + innerH - 4 - (i + 1) * (CELL + 4) + 4;
         const sx = x + (LEFT_W - CELL) / 2;
         const kind = items[i];
-        if (kind) g.drawImage(pieceSprite(kind), sx, sy);
+        if (kind) g.drawImage(pieceSprite(kind), sx, sy, CELL, CELL);
         if (i === 0) {
           // subtle marker brackets around the next piece
           g.fillStyle = PAL.ledYellow;
@@ -242,12 +266,13 @@ export class Renderer2D {
     const key = `${d}:${color}`;
     let c = this.digitCache.get(key);
     if (!c) {
-      c = extract('ref', refDigitRect(d), 12, 20);
+      const q = this.quality;
+      c = extract('ref', refDigitRect(d), 12 * q, 20 * q, { smooth: q > 1 });
       const g = c.getContext('2d')!;
       g.globalCompositeOperation = 'source-atop';
       g.globalAlpha = 0.55;
       g.fillStyle = color;
-      g.fillRect(0, 0, 12, 20);
+      g.fillRect(0, 0, 12 * q, 20 * q);
       this.digitCache.set(key, c);
     }
     return c;
@@ -257,7 +282,7 @@ export class Renderer2D {
   private ledDigit(x: number, y: number, d: number, color: string): void {
     const g = this.g;
     if (sheetsReady()) {
-      g.drawImage(this.bitmapDigit(d, color), x, y);
+      g.drawImage(this.bitmapDigit(d, color), x, y, 12, 20);
       return;
     }
     //   0
@@ -463,7 +488,8 @@ export class Renderer2D {
     const g = this.out;
     g.fillStyle = '#0c0f12';
     g.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    g.imageSmoothingEnabled = false;
+    g.imageSmoothingEnabled = this.mode === 'smooth';
+    if (this.mode === 'smooth') g.imageSmoothingQuality = 'high';
     g.drawImage(
       this.buffer,
       this.offX,

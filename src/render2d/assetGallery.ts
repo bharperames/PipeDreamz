@@ -1,6 +1,16 @@
 import { Dir, PieceKind } from '../core/types';
-import { CELL, drawFlooz, drawMascot, drawPlate, pieceSprite } from './sprites';
+import {
+  CELL,
+  drawFlooz,
+  drawMascot,
+  drawPlate,
+  pieceSprite,
+  setRenderQuality,
+} from './sprites';
 import { extract, refDigitRect, sheetsReady } from './sheet';
+
+/** Gallery renders at smooth quality so cards match the high-res mode. */
+const Q = 3;
 
 /**
  * Asset review page (/PipeDreamz_assets): every asset as its own DOM
@@ -21,13 +31,12 @@ interface ChainCell {
 
 function tile(cellsW: number, cellsH: number, draw: (g: CanvasRenderingContext2D) => void): HTMLCanvasElement {
   const c = document.createElement('canvas');
-  c.width = cellsW * CELL;
-  c.height = cellsH * CELL;
+  c.width = cellsW * CELL * Q;
+  c.height = cellsH * CELL * Q;
   const g = c.getContext('2d')!;
-  g.imageSmoothingEnabled = false;
+  g.scale(Q, Q);
   draw(g);
-  c.style.width = `${c.width * 2}px`;
-  c.style.imageRendering = 'pixelated';
+  c.style.width = `${cellsW * CELL * 2}px`;
   return c;
 }
 
@@ -36,7 +45,9 @@ function chainCanvas(cells: ChainCell[], filled: boolean): HTMLCanvasElement {
   const h = Math.max(...cells.map((c) => c.dy)) + 1;
   return tile(w, h, (g) => {
     for (const { dx, dy } of cells) drawPlate(g, dx * CELL, dy * CELL);
-    for (const c of cells) g.drawImage(pieceSprite(c.kind, c.exit), c.dx * CELL, c.dy * CELL);
+    for (const c of cells) {
+      g.drawImage(pieceSprite(c.kind, c.exit), c.dx * CELL, c.dy * CELL, CELL, CELL);
+    }
     if (!filled) return;
     for (const c of cells) {
       const channels = c.fill ?? (c.kind === 'X' || c.kind === 'BONUS' ? [0, 1] : [0]);
@@ -71,6 +82,7 @@ function section(root: HTMLElement, title: string): HTMLElement {
 }
 
 export function assetGallery(gameCanvas: HTMLCanvasElement): void {
+  setRenderQuality(Q);
   gameCanvas.style.display = 'none';
   document.getElementById('scanlines')?.classList.add('off');
   document.body.style.overflow = 'auto';
@@ -126,7 +138,7 @@ export function assetGallery(gameCanvas: HTMLCanvasElement): void {
   for (const k of KINDS) {
     const empty = tile(1, 1, (g) => {
       drawPlate(g, 0, 0);
-      g.drawImage(pieceSprite(k.kind, k.exit), 0, 0);
+      g.drawImage(pieceSprite(k.kind, k.exit), 0, 0, CELL, CELL);
     });
     if (k.kind === 'OBSTACLE') {
       card(pieces, k.name, empty);
@@ -134,7 +146,7 @@ export function assetGallery(gameCanvas: HTMLCanvasElement): void {
     }
     const filled = tile(1, 1, (g) => {
       drawPlate(g, 0, 0);
-      g.drawImage(pieceSprite(k.kind, k.exit), 0, 0);
+      g.drawImage(pieceSprite(k.kind, k.exit), 0, 0, CELL, CELL);
       const channels = k.kind === 'X' || k.kind === 'BONUS' ? [0, 1] : [0];
       for (const ch of channels) drawFlooz(g, k.kind, ch, 1, false, k.exit);
     });
@@ -186,20 +198,24 @@ export function assetGallery(gameCanvas: HTMLCanvasElement): void {
   if (sheetsReady()) {
     for (let d = 0; d < 10; d++) {
       const c = document.createElement('canvas');
-      c.width = 12;
-      c.height = 20;
-      c.getContext('2d')!.drawImage(extract('ref', refDigitRect(d), 12, 20), 0, 0);
+      c.width = 12 * Q;
+      c.height = 20 * Q;
+      c.getContext('2d')!.drawImage(
+        extract('ref', refDigitRect(d), 12 * Q, 20 * Q, { smooth: true }),
+        0,
+        0,
+      );
       c.style.width = '24px';
-      c.style.imageRendering = 'pixelated';
       card(board, `digit ${d}`, c);
     }
   }
   const mascot = document.createElement('canvas');
-  mascot.width = 64;
-  mascot.height = 100;
-  drawMascot(mascot.getContext('2d')!, 0, 0, 96);
+  mascot.width = 64 * Q;
+  mascot.height = 100 * Q;
+  const mg = mascot.getContext('2d')!;
+  mg.scale(Q, Q);
+  drawMascot(mg, 0, 0, 96);
   mascot.style.width = '128px';
-  mascot.style.imageRendering = 'pixelated';
   card(board, 'mascot', mascot);
 
   // ---------- source SVG specs, rendered natively as vectors ----------
