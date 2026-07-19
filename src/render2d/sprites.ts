@@ -531,6 +531,46 @@ export function pieceSprite(kind: PieceKind, startExit?: Dir): HTMLCanvasElement
 }
 
 /**
+ * Additive glow along a channel path: concentric strokes of decreasing
+ * width and alpha approximate a smooth light falloff from the flooz core;
+ * 'lighter' compositing lets overlapping light sum, so the glow runs
+ * continuously through bends and across cell boundaries instead of
+ * forming a blurred blob per cell.
+ */
+export function glowAlongPath(
+  g: CanvasRenderingContext2D,
+  kind: PieceKind,
+  ch: number,
+  progress: number,
+  reversed: boolean,
+): void {
+  const steps = Math.max(2, Math.ceil(20 * progress));
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const layers: Array<[number, number]> = [
+    [34, 0.045],
+    [26, 0.07],
+    [19, 0.1],
+    [12, 0.14],
+  ];
+  for (const [w, a] of layers) {
+    g.strokeStyle = `rgba(90, 235, 70, ${a})`;
+    g.lineWidth = w;
+    g.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * progress;
+      const p = pathPoint(kind, ch, reversed ? 1 - t : t);
+      if (i === 0) g.moveTo(p.x, p.y);
+      else g.lineTo(p.x, p.y);
+    }
+    g.stroke();
+  }
+  g.restore();
+}
+
+/**
  * Draw flooz along a channel up to `progress`: bright yellow with a dark
  * edge, riding inside the pipe like the original's liquid.
  */
@@ -559,6 +599,7 @@ export function drawFlooz(
       const multiChannel = kind === 'X' || kind === 'BONUS';
       if (progress >= 1 && !multiChannel) {
         g.drawImage(filled, 0, 0);
+        glowAlongPath(g, kind, ch, 1, reversed);
         return;
       }
       if (!floozScratch) {
@@ -585,6 +626,7 @@ export function drawFlooz(
       sg.globalCompositeOperation = 'source-in';
       sg.drawImage(filled, 0, 0);
       g.drawImage(floozScratch, 0, 0);
+      glowAlongPath(g, kind, ch, progress, reversed);
       return;
     }
   }

@@ -119,19 +119,28 @@ export const REF: Record<string, Rect> = {
   plateRust: { x: 60, y: 190, w: 155, h: 150 },
   // player character, standing pose
   heroStand: { x: 1990, y: 160, w: 440, h: 700 },
-  // digit strip 0..9 (bottom middle)
-  digits: { x: 1136, y: 1540, w: 745, h: 100 },
+  // digit strip 0..9 (bottom middle) — kept for reference; per-digit
+  // rects below are measured from the actual chip positions.
+  digits: { x: 1132, y: 1540, w: 756, h: 100 },
 };
 
+/** Measured chip spans for digits 0..9 (the strip is irregularly spaced). */
+const DIGIT_SPANS: ReadonlyArray<[number, number]> = [
+  [1150, 1186],
+  [1211, 1269],
+  [1282, 1341],
+  [1354, 1401],
+  [1426, 1485],
+  [1498, 1544],
+  [1570, 1617],
+  [1642, 1700],
+  [1714, 1761],
+  [1797, 1832],
+];
+
 export function refDigitRect(d: number): Rect {
-  const strip = REF.digits!;
-  const pitch = strip.w / 10;
-  return {
-    x: Math.round(strip.x + d * pitch + 12),
-    y: strip.y + 4,
-    w: Math.round(pitch - 24),
-    h: strip.h - 8,
-  };
+  const [x0, x1] = DIGIT_SPANS[d]!;
+  return { x: x0 - 2, y: 1546, w: x1 - x0 + 4, h: 88 };
 }
 
 // ---------- extraction ----------
