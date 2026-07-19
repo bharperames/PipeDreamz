@@ -77,7 +77,17 @@ export class BonusScreen {
         startExit: piece.kind === 'START' ? this.bonus.level.start.exit : undefined,
       });
       piece.channels.forEach((ch, i) => {
-        if (ch.filled) r.drawFloozAt(pos.x, pos.y, piece.kind, i, 1, false);
+        if (ch.filled) {
+          r.drawFloozAt(
+            pos.x,
+            pos.y,
+            piece.kind,
+            i,
+            1,
+            false,
+            piece.kind === 'START' ? this.bonus.level.start.exit : undefined,
+          );
+        }
       });
     });
 

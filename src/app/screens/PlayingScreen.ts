@@ -155,7 +155,15 @@ export class PlayingScreen {
       });
       piece.channels.forEach((ch, i) => {
         if (ch.filled) {
-          r.drawFloozAt(pos.x, pos.y, piece.kind, i, 1, this.reversed(piece.kind, i, ch.fillEntry));
+          r.drawFloozAt(
+            pos.x,
+            pos.y,
+            piece.kind,
+            i,
+            1,
+            this.reversed(piece.kind, i, ch.fillEntry),
+            piece.kind === 'START' ? round.level.start.exit : undefined,
+          );
         }
       });
     });
@@ -171,6 +179,7 @@ export class PlayingScreen {
         head.channelIdx,
         round.flow.segmentProgress(),
         this.reversed(piece.kind, head.channelIdx, head.entryDir),
+        piece.kind === 'START' ? round.level.start.exit : undefined,
       );
     }
 

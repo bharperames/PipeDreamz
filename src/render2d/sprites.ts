@@ -1,29 +1,33 @@
 import { Dir, PieceKind } from '../core/types';
+import { extract, ExtractOpts, pipeCellRect, REF, sheetsReady } from './sheet';
 
 /**
  * Original pixel-art sprites drawn in code, styled after the visual
  * language of 1989 Amiga pipe puzzlers: rust-red pipes with a dark shadow
  * band and hot highlight, riveted grey plate tiles with diagonal braces,
- * and bright yellow flooz. Cell sprites are 24x24 internal pixels; the
- * framebuffer is integer-upscaled with nearest-neighbor sampling.
+ * and bright yellow flooz. Cell sprites are 48x48 internal pixels (2× the
+ * original 24px); the framebuffer is integer-upscaled with nearest-neighbor.
+ *
+ * Elbows use sharp right-angle bends (not smooth arcs) to match the
+ * geometric pipe look of the original game.
  */
 
-export const CELL = 24;
+export const CELL = 48;
 
 export const PAL = {
   black: '#0c0c0e',
-  // plates
-  plate: '#8e949c',
-  plateFace: '#7f858d',
-  plateHi: '#c2c8cf',
-  plateLo: '#42474d',
-  plateBrace: '#9aa0a8',
-  plateBraceLo: '#3f444a',
-  plateGroove: '#33383e',
-  obstacle: '#4e545c',
-  obstacleHi: '#6d747d',
-  obstacleLo: '#2e3238',
-  // pipes
+  // plates — darkened for contrast against red pipes
+  plate: '#585e66',
+  plateFace: '#484e56',
+  plateHi: '#787e86',
+  plateLo: '#282c32',
+  plateBrace: '#606870',
+  plateBraceLo: '#282e36',
+  plateGroove: '#181c22',
+  obstacle: '#383e46',
+  obstacleHi: '#585e66',
+  obstacleLo: '#1e2228',
+  // pipes — rust-red (faithful to the original Amiga game)
   pipeDark: '#3a0c08',
   pipeBody: '#8e2410',
   pipeMid: '#c84c20',
@@ -31,10 +35,10 @@ export const PAL = {
   pipeGlint: '#f8c088',
   collar: '#b8bec4',
   collarLo: '#6b7178',
-  // flooz
-  floozEdge: '#7a6408',
-  flooz: '#eed222',
-  floozHi: '#faf3a2',
+  // flooz — radioactive green, matching the glass/brass asset sheets
+  floozEdge: '#1a7a1c',
+  flooz: '#4ce03c',
+  floozHi: '#c8ffb0',
   // hud
   hudBar: '#701c14',
   hudBarHi: '#a03428',
@@ -52,14 +56,16 @@ export const PAL = {
   gold: '#e0b23c',
 } as const;
 
-/** Point on a channel's flow path (cell-local 0..CELL coords). */
+/**
+ * Point on a channel's flow path (cell-local 0..CELL coords).
+ *
+ * Elbows use sharp right-angle segments (two straight lines meeting at
+ * the cell center) rather than smooth arcs, matching the geometric
+ * pipe style of the original 1989 game.
+ */
 export function pathPoint(kind: PieceKind, channelIdx: number, t: number): { x: number; y: number } {
   const c = CELL / 2;
   const lerp = (a: number, b: number) => a + (b - a) * t;
-  const arc = (cx: number, cy: number, a0: number, a1: number) => {
-    const a = a0 + (a1 - a0) * t;
-    return { x: cx + c * Math.cos(a), y: cy + c * Math.sin(a) };
-  };
   switch (kind) {
     case 'H': case 'RESERVOIR_H': case 'ONEWAY_E':
       return { x: lerp(0, CELL), y: c };
@@ -69,10 +75,21 @@ export function pathPoint(kind: PieceKind, channelIdx: number, t: number): { x: 
       return { x: c, y: lerp(0, CELL) };
     case 'ONEWAY_N':
       return { x: c, y: lerp(CELL, 0) };
-    case 'NE': return arc(CELL, 0, Math.PI, Math.PI / 2);
-    case 'NW': return arc(0, 0, 0, Math.PI / 2);
-    case 'SE': return arc(CELL, CELL, Math.PI, 1.5 * Math.PI);
-    case 'SW': return arc(0, CELL, 0, -Math.PI / 2);
+
+    // Elbows: two straight segments meeting at (c, c)
+    case 'NE': // North → East
+      if (t <= 0.5) return { x: c, y: t * 2 * c };
+      return { x: c + (t - 0.5) * 2 * c, y: c };
+    case 'NW': // North → West
+      if (t <= 0.5) return { x: c, y: t * 2 * c };
+      return { x: c - (t - 0.5) * 2 * c, y: c };
+    case 'SE': // South → East
+      if (t <= 0.5) return { x: c, y: CELL - t * 2 * c };
+      return { x: c + (t - 0.5) * 2 * c, y: c };
+    case 'SW': // South → West
+      if (t <= 0.5) return { x: c, y: CELL - t * 2 * c };
+      return { x: c - (t - 0.5) * 2 * c, y: c };
+
     case 'X': case 'BONUS':
       return channelIdx === 0 ? { x: c, y: lerp(0, CELL) } : { x: lerp(0, CELL), y: c };
     default:
@@ -86,54 +103,55 @@ function strokePath(
   ch: number,
   width: number,
   color: string,
-  offY = 0,
 ): void {
   g.strokeStyle = color;
   g.lineWidth = width;
   g.lineCap = 'butt';
+  g.lineJoin = 'miter';
+  g.miterLimit = 10;
   g.beginPath();
   const steps = 20;
   for (let i = 0; i <= steps; i++) {
     const p = pathPoint(kind, ch, i / steps);
-    if (i === 0) g.moveTo(p.x, p.y + offY);
-    else g.lineTo(p.x, p.y + offY);
+    if (i === 0) g.moveTo(p.x, p.y);
+    else g.lineTo(p.x, p.y);
   }
   g.stroke();
 }
 
 /**
- * Rust pipe body drawn as flat color bands, era style: black outline,
- * dark shadow stripe along the lower/right wall, flat red body, lighter
- * band toward the light. Roughly half the cell wide so elbows read as
- * bent tubes rather than solid wedges.
+ * Rust pipe body drawn as concentric color bands: black outline, dark
+ * shadow edge, flat red body, lighter band, hot highlight, and a thin
+ * bright glint at center. Sharp miter joins at right-angle bends.
  */
 function pipeBody(g: CanvasRenderingContext2D, kind: PieceKind, ch: number, gold = false): void {
-  strokePath(g, kind, ch, 13, PAL.black);
-  strokePath(g, kind, ch, 11, gold ? '#4c3c0a' : PAL.pipeDark, 1);
-  strokePath(g, kind, ch, 8, gold ? '#9c7814' : PAL.pipeBody, 1);
-  strokePath(g, kind, ch, 5, gold ? '#cca428' : PAL.pipeMid, -1);
-  strokePath(g, kind, ch, 2, gold ? '#f0d060' : PAL.pipeHi, -2);
+  strokePath(g, kind, ch, 24, PAL.black);
+  strokePath(g, kind, ch, 20, gold ? '#4c3c0a' : PAL.pipeDark);
+  strokePath(g, kind, ch, 16, gold ? '#9c7814' : PAL.pipeBody);
+  strokePath(g, kind, ch, 10, gold ? '#cca428' : PAL.pipeMid);
+  strokePath(g, kind, ch, 4, gold ? '#f0d060' : PAL.pipeHi);
+  strokePath(g, kind, ch, 2, gold ? '#f8e890' : PAL.pipeGlint);
 }
 
 /** Grey collar flanges at the open cell edges, wider than the pipe. */
 function flange(g: CanvasRenderingContext2D, side: Dir): void {
-  const w = 17;
-  const t = 4;
+  const w = 30;
+  const t = 8;
   const c = CELL / 2;
   const draw = (x: number, y: number, fw: number, fh: number, horizontal: boolean) => {
     g.fillStyle = PAL.black;
-    g.fillRect(x - 1, y - 1, fw + 2, fh + 2);
+    g.fillRect(x - 2, y - 2, fw + 4, fh + 4);
     g.fillStyle = PAL.collarLo;
     g.fillRect(x, y, fw, fh);
     g.fillStyle = PAL.collar;
     if (horizontal) {
-      g.fillRect(x, y, fw, 2);
+      g.fillRect(x, y, fw, 3);
       g.fillStyle = PAL.white;
-      g.fillRect(x + 1, y, fw - 2, 1);
+      g.fillRect(x + 2, y, fw - 4, 1);
     } else {
-      g.fillRect(x, y, 2, fh);
+      g.fillRect(x, y, 3, fh);
       g.fillStyle = PAL.white;
-      g.fillRect(x, y + 1, 1, fh - 2);
+      g.fillRect(x, y + 2, 1, fh - 4);
     }
   };
   if (side === 0) draw(c - w / 2, 0, w, t, true);
@@ -162,13 +180,13 @@ function arrow(g: CanvasRenderingContext2D, dir: Dir, color: string): void {
   g.translate(c, c);
   g.rotate((Math.PI / 2) * dir);
   g.beginPath();
-  g.moveTo(0, -6);
-  g.lineTo(5, 1);
-  g.lineTo(2, 1);
-  g.lineTo(2, 6);
-  g.lineTo(-2, 6);
-  g.lineTo(-2, 1);
-  g.lineTo(-5, 1);
+  g.moveTo(0, -12);
+  g.lineTo(10, 2);
+  g.lineTo(4, 2);
+  g.lineTo(4, 12);
+  g.lineTo(-4, 12);
+  g.lineTo(-4, 2);
+  g.lineTo(-10, 2);
   g.closePath();
   g.fill();
   g.restore();
@@ -181,24 +199,24 @@ function arrow(g: CanvasRenderingContext2D, dir: Dir, color: string): void {
 function housing(g: CanvasRenderingContext2D): void {
   // rounded valve block with corner bolts
   g.fillStyle = PAL.black;
-  g.fillRect(4, 3, 16, 18);
-  g.fillRect(3, 4, 18, 16);
+  g.fillRect(8, 6, 32, 36);
+  g.fillRect(6, 8, 36, 32);
   g.fillStyle = PAL.housing;
-  g.fillRect(5, 4, 14, 16);
-  g.fillRect(4, 5, 16, 14);
+  g.fillRect(10, 8, 28, 32);
+  g.fillRect(8, 10, 32, 28);
   g.fillStyle = PAL.housingHi;
-  g.fillRect(5, 4, 14, 2);
-  g.fillRect(4, 5, 2, 14);
+  g.fillRect(10, 8, 28, 4);
+  g.fillRect(8, 10, 4, 28);
   g.fillStyle = '#1c3478';
-  g.fillRect(18, 6, 2, 13);
-  g.fillRect(6, 18, 13, 2);
+  g.fillRect(36, 12, 4, 26);
+  g.fillRect(12, 36, 26, 4);
   g.fillStyle = '#8ea6ec';
-  for (const [bx, by] of [[5, 5], [18, 5], [5, 18], [18, 18]] as const) {
-    g.fillRect(bx, by, 1, 1);
+  for (const [bx, by] of [[10, 10], [36, 10], [10, 36], [36, 36]] as const) {
+    g.fillRect(bx, by, 2, 2);
   }
 }
 
-/** Chunky 5x7 letter for S / E labels. */
+/** Chunky 5x7 letter for S / E labels, doubled to 10x14. */
 function letter(g: CanvasRenderingContext2D, ch: 'S' | 'E', x: number, y: number, color: string): void {
   g.fillStyle = color;
   const rows =
@@ -207,12 +225,12 @@ function letter(g: CanvasRenderingContext2D, ch: 'S' | 'E', x: number, y: number
       : [0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b11111];
   rows.forEach((bits, ry) => {
     for (let rx = 0; rx < 5; rx++) {
-      if (bits & (1 << (4 - rx))) g.fillRect(x + rx, y + ry, 1, 1);
+      if (bits & (1 << (4 - rx))) g.fillRect(x + rx * 2, y + ry * 2, 2, 2);
     }
   });
 }
 
-/** Draw one piece sprite into a 24x24 context at origin. */
+/** Draw one piece sprite into a 48x48 context at origin. */
 export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExit?: Dir): void {
   switch (kind) {
     case 'OBSTACLE': {
@@ -220,50 +238,74 @@ export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExi
       g.fillStyle = PAL.plateGroove;
       g.fillRect(0, 0, CELL, CELL);
       g.fillStyle = PAL.obstacle;
-      g.fillRect(1, 1, CELL - 2, CELL - 2);
+      g.fillRect(2, 2, CELL - 4, CELL - 4);
       g.fillStyle = PAL.obstacleHi;
-      g.fillRect(1, 1, CELL - 2, 1);
-      g.fillRect(1, 1, 1, CELL - 2);
+      g.fillRect(2, 2, CELL - 4, 2);
+      g.fillRect(2, 2, 2, CELL - 4);
       g.fillStyle = PAL.obstacleLo;
-      g.fillRect(1, CELL - 2, CELL - 2, 1);
-      g.fillRect(CELL - 2, 1, 1, CELL - 2);
+      g.fillRect(2, CELL - 4, CELL - 4, 2);
+      g.fillRect(CELL - 4, 2, 2, CELL - 4);
       g.strokeStyle = PAL.obstacleLo;
-      g.lineWidth = 6;
+      g.lineWidth = 12;
       g.beginPath();
-      g.moveTo(3, 3); g.lineTo(CELL - 3, CELL - 3);
-      g.moveTo(CELL - 3, 3); g.lineTo(3, CELL - 3);
+      g.moveTo(6, 6); g.lineTo(CELL - 6, CELL - 6);
+      g.moveTo(CELL - 6, 6); g.lineTo(6, CELL - 6);
       g.stroke();
       g.strokeStyle = PAL.obstacleHi;
-      g.lineWidth = 2;
+      g.lineWidth = 4;
       g.beginPath();
-      g.moveTo(3, 3); g.lineTo(CELL - 4, CELL - 4);
-      g.moveTo(CELL - 4, 3); g.lineTo(3, CELL - 4);
+      g.moveTo(6, 6); g.lineTo(CELL - 8, CELL - 8);
+      g.moveTo(CELL - 8, 6); g.lineTo(6, CELL - 8);
       g.stroke();
       break;
     }
     case 'START': {
+      // Draw housing first, then pipe spout ON TOP so exit direction is clearly visible
+      housing(g);
+      letter(g, 'S', 17, 15, PAL.ledYellow);
       if (startExit !== undefined) {
         const spoutKind = (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'] as const)[startExit]!;
-        // Clip the spout to the exit half so pipe only pokes out one side.
+        // Draw spout pipe from housing edge to cell edge (on top of housing)
         g.save();
         g.beginPath();
         const c = CELL / 2;
-        if (startExit === 0) g.rect(0, 0, CELL, c);
-        if (startExit === 1) g.rect(c, 0, c, CELL);
-        if (startExit === 2) g.rect(0, c, CELL, c);
-        if (startExit === 3) g.rect(0, 0, c, CELL);
+        // Clip to exit side only, starting just past center
+        const inset = 6; // slight overlap onto housing for visual connection
+        if (startExit === 0) g.rect(0, 0, CELL, c - inset);
+        if (startExit === 1) g.rect(c + inset, 0, c - inset, CELL);
+        if (startExit === 2) g.rect(0, c + inset, CELL, c - inset);
+        if (startExit === 3) g.rect(0, 0, c - inset, CELL);
         g.clip();
         pipeBody(g, spoutKind, 0);
         g.restore();
         flange(g, startExit);
+        // Bright directional arrow on the housing showing exit direction
+        g.fillStyle = PAL.ledYellow;
+        g.save();
+        g.translate(c, c);
+        g.rotate((Math.PI / 2) * startExit);
+        // Arrow pointing upward (direction 0=N), rotated for actual exit
+        g.beginPath();
+        g.moveTo(0, -16);
+        g.lineTo(8, -4);
+        g.lineTo(3, -4);
+        g.lineTo(3, 4);
+        g.lineTo(-3, 4);
+        g.lineTo(-3, -4);
+        g.lineTo(-8, -4);
+        g.closePath();
+        g.fill();
+        // Dark outline for arrow
+        g.strokeStyle = PAL.black;
+        g.lineWidth = 2;
+        g.stroke();
+        g.restore();
       }
-      housing(g);
-      letter(g, 'S', 10, 9, PAL.ledYellow);
       break;
     }
     case 'END': {
       housing(g);
-      letter(g, 'E', 10, 9, PAL.ledYellow);
+      letter(g, 'E', 17, 15, PAL.ledYellow);
       break;
     }
     case 'X': case 'BONUS': {
@@ -280,18 +322,18 @@ export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExi
       if (reservoir) {
         g.fillStyle = PAL.black;
         g.beginPath();
-        g.arc(12, 12, 9, 0, Math.PI * 2);
+        g.arc(24, 24, 18, 0, Math.PI * 2);
         g.fill();
         g.fillStyle = PAL.pipeBody;
         g.beginPath();
-        g.arc(12, 12, 8, 0, Math.PI * 2);
+        g.arc(24, 24, 16, 0, Math.PI * 2);
         g.fill();
         g.fillStyle = PAL.pipeMid;
         g.beginPath();
-        g.arc(11, 11, 6, 0, Math.PI * 2);
+        g.arc(22, 22, 12, 0, Math.PI * 2);
         g.fill();
         g.fillStyle = PAL.pipeHi;
-        g.fillRect(8, 7, 4, 2);
+        g.fillRect(16, 14, 8, 4);
       }
       for (const d of flangesFor(kind)) flange(g, d);
       if (oneWay) {
@@ -306,25 +348,33 @@ export function drawPiece(g: CanvasRenderingContext2D, kind: PieceKind, startExi
 /**
  * Background plate tile: dark groove between cells, beveled frame strip,
  * recessed face with thin diagonal X braces ending in corner pads.
+ * Faithful to the original Amiga tile pattern at 2× resolution.
  */
+let plateBitmap: HTMLCanvasElement | null = null;
+
 export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): void {
+  if (sheetsReady()) {
+    if (!plateBitmap) plateBitmap = extract('ref', REF.plateSilver!, CELL, CELL);
+    g.drawImage(plateBitmap, x, y);
+    return;
+  }
   // groove between plates
   g.fillStyle = PAL.plateGroove;
   g.fillRect(x, y, CELL, CELL);
   // frame strip with bevel
   g.fillStyle = PAL.plate;
-  g.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
+  g.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
   g.fillStyle = PAL.plateHi;
-  g.fillRect(x + 1, y + 1, CELL - 2, 1);
-  g.fillRect(x + 1, y + 1, 1, CELL - 2);
+  g.fillRect(x + 2, y + 2, CELL - 4, 2);
+  g.fillRect(x + 2, y + 2, 2, CELL - 4);
   g.fillStyle = PAL.plateLo;
-  g.fillRect(x + 1, y + CELL - 2, CELL - 2, 1);
-  g.fillRect(x + CELL - 2, y + 1, 1, CELL - 2);
+  g.fillRect(x + 2, y + CELL - 4, CELL - 4, 2);
+  g.fillRect(x + CELL - 4, y + 2, 2, CELL - 4);
   // recessed face
   g.fillStyle = PAL.plateFace;
-  g.fillRect(x + 3, y + 3, CELL - 6, CELL - 6);
+  g.fillRect(x + 6, y + 6, CELL - 12, CELL - 12);
   g.fillStyle = PAL.plateLo;
-  g.fillRect(x + 3, y + 3, CELL - 6, 1);
+  g.fillRect(x + 6, y + 6, CELL - 12, 2);
   // heavy raised X ridges spanning the face, with drop shadow and lit top
   const diag = (x0: number, y0: number, x1: number, y1: number) => {
     g.beginPath();
@@ -332,43 +382,136 @@ export function drawPlate(g: CanvasRenderingContext2D, x: number, y: number): vo
     g.lineTo(x + x1, y + y1);
     g.stroke();
   };
-  g.lineWidth = 4;
+  g.lineWidth = 8;
   g.strokeStyle = PAL.plateBraceLo;
-  diag(5, 6, CELL - 4, CELL - 3);
-  diag(CELL - 5, 6, 4, CELL - 3);
-  g.lineWidth = 3;
+  diag(10, 12, CELL - 8, CELL - 6);
+  diag(CELL - 10, 12, 8, CELL - 6);
+  g.lineWidth = 6;
   g.strokeStyle = PAL.plateBrace;
-  diag(4.5, 4.5, CELL - 4.5, CELL - 4.5);
-  diag(CELL - 4.5, 4.5, 4.5, CELL - 4.5);
-  g.lineWidth = 1;
+  diag(9, 9, CELL - 9, CELL - 9);
+  diag(CELL - 9, 9, 9, CELL - 9);
+  g.lineWidth = 2;
   g.strokeStyle = PAL.plateHi;
-  diag(4.5, 3.5, CELL - 5.5, CELL - 6.5);
-  diag(CELL - 4.5, 3.5, 5.5, CELL - 5.5);
+  diag(9, 7, CELL - 11, CELL - 13);
+  diag(CELL - 9, 7, 11, CELL - 11);
   // corner pads bolting the braces down
-  for (const [rx, ry] of [[2, 2], [CELL - 7, 2], [2, CELL - 7], [CELL - 7, CELL - 7]] as const) {
+  for (const [rx, ry] of [[4, 4], [CELL - 14, 4], [4, CELL - 14], [CELL - 14, CELL - 14]] as const) {
     g.fillStyle = PAL.plate;
-    g.fillRect(x + rx, y + ry, 5, 5);
+    g.fillRect(x + rx, y + ry, 10, 10);
     g.fillStyle = PAL.plateHi;
-    g.fillRect(x + rx, y + ry, 5, 1);
-    g.fillRect(x + rx, y + ry, 1, 5);
+    g.fillRect(x + rx, y + ry, 10, 2);
+    g.fillRect(x + rx, y + ry, 2, 10);
     g.fillStyle = PAL.plateLo;
-    g.fillRect(x + rx, y + ry + 4, 5, 1);
-    g.fillRect(x + rx + 4, y + ry, 1, 5);
+    g.fillRect(x + rx, y + ry + 8, 10, 2);
+    g.fillRect(x + rx + 8, y + ry, 2, 10);
   }
 }
 
 const spriteCache = new Map<string, HTMLCanvasElement>();
 
+/** Letter label with a dark chip behind it for readability on bitmaps. */
+function letterChip(g: CanvasRenderingContext2D, ch: 'S' | 'E'): void {
+  g.fillStyle = 'rgba(10,10,14,0.85)';
+  g.fillRect(14, 12, 20, 24);
+  letter(g, ch, 19, 17, PAL.ledYellow);
+}
+
+/**
+ * Sheet-cell mapping for each piece kind (glass/brass sheets). The sheets
+ * only contain south-facing elbows (SW at c3, SE at c4), so north-facing
+ * orientations are generated by rotation — the classic sheet-thrift trick.
+ */
+function pieceCrop(
+  kind: PieceKind,
+  startExit?: Dir,
+): { col: number; row: number; rotate: 0 | 90 | 180 | 270 } | null {
+  switch (kind) {
+    case 'H': return { col: 0, row: 0, rotate: 0 };
+    case 'V': return { col: 1, row: 0, rotate: 0 };
+    case 'SW': return { col: 3, row: 0, rotate: 0 };
+    case 'SE': return { col: 4, row: 0, rotate: 0 };
+    case 'NW': return { col: 3, row: 0, rotate: 90 };
+    case 'NE': return { col: 4, row: 0, rotate: 270 };
+    case 'X': return { col: 2, row: 1, rotate: 0 };
+    case 'BONUS': return { col: 3, row: 1, rotate: 0 }; // diagonal crossover
+    case 'END': return { col: 4, row: 1, rotate: 0 }; // ornate brass cross
+    case 'ONEWAY_E': case 'ONEWAY_W': return { col: 5, row: 1, rotate: 0 }; // HIGH PRESSURE
+    case 'ONEWAY_N': case 'ONEWAY_S': return { col: 6, row: 1, rotate: 0 }; // gauge vertical
+    case 'RESERVOIR_V': return { col: 0, row: 2, rotate: 0 }; // double glass tank
+    case 'RESERVOIR_H': return { col: 2, row: 2, rotate: 0 }; // brass canister
+    case 'START':
+      // Valve wheel; openings are W/E, rotate for N/S exits.
+      return { col: 1, row: 2, rotate: startExit === 0 || startExit === 2 ? 90 : 0 };
+    default:
+      return null;
+  }
+}
+
+/** Decoration overlays shared by the empty and filled sprite variants. */
+function pieceOverlays(g: CanvasRenderingContext2D, kind: PieceKind, startExit?: Dir): void {
+  if (kind.startsWith('ONEWAY')) {
+    const dir = (['ONEWAY_N', 'ONEWAY_E', 'ONEWAY_S', 'ONEWAY_W'].indexOf(kind)) as Dir;
+    arrow(g, dir, PAL.white);
+  }
+  if (kind === 'START') {
+    if (startExit !== undefined) {
+      const off = 15;
+      const d = [[0, -off], [off, 0], [0, off], [-off, 0]][startExit]!;
+      g.save();
+      g.translate(d[0]!, d[1]!);
+      arrow(g, startExit, PAL.ledYellow);
+      g.restore();
+    }
+    letterChip(g, 'S');
+  }
+  if (kind === 'END') letterChip(g, 'E');
+}
+
+/** Build a piece sprite from a sheet; null → procedural fallback. */
+function bitmapPiece(kind: PieceKind, startExit?: Dir): HTMLCanvasElement | null {
+  if (!sheetsReady()) return null;
+  if (kind === 'OBSTACLE') return extract('ref', REF.plateRust!, CELL, CELL);
+  const crop = pieceCrop(kind, startExit);
+  if (!crop) return null;
+  const c = extract('pipes', pipeCellRect(crop.col, crop.row), CELL, CELL, {
+    key: true,
+    overscan: 5,
+    rotate: crop.rotate,
+  });
+  pieceOverlays(c.getContext('2d')!, kind, startExit);
+  return c;
+}
+
+/** Glowing filled variant of a piece (same crop from the filled sheet). */
+export function filledPieceSprite(kind: PieceKind, startExit?: Dir): HTMLCanvasElement | null {
+  if (!sheetsReady()) return null;
+  const key = `filled:${kind}:${startExit ?? ''}`;
+  const cached = spriteCache.get(key);
+  if (cached) return cached;
+  const crop = pieceCrop(kind, startExit);
+  if (!crop) return null;
+  const c = extract('filled', pipeCellRect(crop.col, crop.row), CELL, CELL, {
+    key: true,
+    overscan: 5,
+    rotate: crop.rotate,
+  });
+  pieceOverlays(c.getContext('2d')!, kind, startExit);
+  spriteCache.set(key, c);
+  return c;
+}
+
 export function pieceSprite(kind: PieceKind, startExit?: Dir): HTMLCanvasElement {
-  const key = `${kind}:${startExit ?? ''}`;
-  let c = spriteCache.get(key);
+  const key = `${kind}:${startExit ?? ''}:${sheetsReady() ? 'bmp' : 'proc'}`;
+  const cached = spriteCache.get(key);
+  if (cached) return cached;
+  let c = bitmapPiece(kind, startExit);
   if (!c) {
     c = document.createElement('canvas');
     c.width = CELL;
     c.height = CELL;
     drawPiece(c.getContext('2d')!, kind, startExit);
-    spriteCache.set(key, c);
   }
+  spriteCache.set(key, c);
   return c;
 }
 
@@ -376,14 +519,61 @@ export function pieceSprite(kind: PieceKind, startExit?: Dir): HTMLCanvasElement
  * Draw flooz along a channel up to `progress`: bright yellow with a dark
  * edge, riding inside the pipe like the original's liquid.
  */
+let floozScratch: HTMLCanvasElement | null = null;
+
 export function drawFlooz(
   g: CanvasRenderingContext2D,
   kind: PieceKind,
   ch: number,
   progress: number,
   reversed: boolean,
+  startExit?: Dir,
 ): void {
   if (progress <= 0) return;
+
+  // Bitmap mode: reveal the glowing filled sprite along the flow path.
+  if (sheetsReady()) {
+    const filled = filledPieceSprite(kind, startExit);
+    if (filled) {
+      // Housings/tanks: fade the whole filled sprite in as they fill.
+      if (kind === 'START' || kind === 'END') {
+        if (progress > 0.25) g.drawImage(filled, 0, 0);
+        return;
+      }
+      // Single-channel piece fully filled: draw whole sprite (full halo).
+      const multiChannel = kind === 'X' || kind === 'BONUS';
+      if (progress >= 1 && !multiChannel) {
+        g.drawImage(filled, 0, 0);
+        return;
+      }
+      if (!floozScratch) {
+        floozScratch = document.createElement('canvas');
+        floozScratch.width = CELL;
+        floozScratch.height = CELL;
+      }
+      const sg = floozScratch.getContext('2d')!;
+      sg.globalCompositeOperation = 'source-over';
+      sg.clearRect(0, 0, CELL, CELL);
+      sg.strokeStyle = '#ffffff';
+      sg.lineWidth = 32;
+      sg.lineCap = 'round';
+      sg.lineJoin = 'round';
+      sg.beginPath();
+      const steps = Math.max(2, Math.ceil(20 * progress));
+      for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * progress;
+        const p = pathPoint(kind, ch, reversed ? 1 - t : t);
+        if (i === 0) sg.moveTo(p.x, p.y);
+        else sg.lineTo(p.x, p.y);
+      }
+      sg.stroke();
+      sg.globalCompositeOperation = 'source-in';
+      sg.drawImage(filled, 0, 0);
+      g.drawImage(floozScratch, 0, 0);
+      return;
+    }
+  }
+
   const steps = Math.max(2, Math.ceil(20 * progress));
   const pts: Array<{ x: number; y: number }> = [];
   for (let i = 0; i <= steps; i++) {
@@ -394,22 +584,24 @@ export function drawFlooz(
     g.strokeStyle = color;
     g.lineWidth = w;
     g.lineCap = 'butt';
+    g.lineJoin = 'miter';
+    g.miterLimit = 10;
     g.beginPath();
     pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
     g.stroke();
   };
-  stroke(7, PAL.floozEdge);
-  stroke(5, PAL.flooz);
-  stroke(2, PAL.floozHi);
+  stroke(12, PAL.floozEdge);
+  stroke(8, PAL.flooz);
+  stroke(4, PAL.floozHi);
   if (kind.startsWith('RESERVOIR') && progress > 0.35) {
     const f = Math.min(1, (progress - 0.35) / 0.4);
     g.fillStyle = PAL.flooz;
     g.beginPath();
-    g.arc(12, 12, 7 * f, 0, Math.PI * 2);
+    g.arc(24, 24, 14 * f, 0, Math.PI * 2);
     g.fill();
     g.fillStyle = PAL.floozHi;
     g.beginPath();
-    g.arc(10, 10, 3 * f, 0, Math.PI * 2);
+    g.arc(20, 20, 6 * f, 0, Math.PI * 2);
     g.fill();
   }
 }
@@ -418,47 +610,60 @@ export function drawFlooz(
  * Original mascot: a stubby hard-hat plumber clutching a wrench, drawn
  * from scratch (not a recreation of any existing game character).
  */
-export function drawMascot(g: CanvasRenderingContext2D, x: number, y: number): void {
+const heroBitmaps = new Map<number, HTMLCanvasElement>();
+
+/** Mascot at an arbitrary height so he can fit below the dispenser. */
+export function drawMascot(g: CanvasRenderingContext2D, x: number, y: number, h = 96): void {
+  if (sheetsReady()) {
+    let hero = heroBitmaps.get(h);
+    if (!hero) {
+      hero = extract('ref', REF.heroStand!, Math.round(h * 0.63), h, { key: true });
+      heroBitmaps.set(h, hero);
+    }
+    g.drawImage(hero, x, y);
+    return;
+  }
+  if (h < 88) return; // procedural mascot has a fixed 96px frame
   g.save();
   g.translate(x, y);
   // boots
   g.fillStyle = '#3a3026';
-  g.fillRect(6, 40, 8, 4);
-  g.fillRect(18, 40, 8, 4);
+  g.fillRect(12, 80, 16, 8);
+  g.fillRect(36, 80, 16, 8);
   // overalls
   g.fillStyle = '#2c50b4';
-  g.fillRect(7, 26, 18, 14);
+  g.fillRect(14, 52, 36, 28);
   g.fillStyle = '#1c3478';
-  g.fillRect(7, 38, 18, 2);
-  g.fillRect(14, 26, 4, 8);
+  g.fillRect(14, 76, 36, 4);
+  g.fillRect(28, 52, 8, 16);
   // shirt + arms
   g.fillStyle = '#c8442c';
-  g.fillRect(5, 22, 22, 6);
-  g.fillRect(3, 24, 4, 8);
-  g.fillRect(25, 24, 4, 8);
+  g.fillRect(10, 44, 44, 12);
+  g.fillRect(6, 48, 8, 16);
+  g.fillRect(50, 48, 8, 16);
   // hands
   g.fillStyle = '#e8b088';
-  g.fillRect(3, 32, 4, 3);
-  g.fillRect(25, 32, 4, 3);
+  g.fillRect(6, 64, 8, 6);
+  g.fillRect(50, 64, 8, 6);
   // head
   g.fillStyle = '#e8b088';
-  g.fillRect(9, 10, 14, 12);
+  g.fillRect(18, 20, 28, 24);
   // eyes + grin
   g.fillStyle = PAL.black;
-  g.fillRect(12, 14, 2, 3);
-  g.fillRect(18, 14, 2, 3);
-  g.fillRect(12, 19, 8, 1);
+  g.fillRect(24, 28, 4, 6);
+  g.fillRect(36, 28, 4, 6);
+  g.fillRect(24, 38, 16, 2);
   // hard hat
   g.fillStyle = PAL.ledYellow;
-  g.fillRect(8, 5, 16, 6);
-  g.fillRect(6, 9, 20, 2);
+  g.fillRect(16, 10, 32, 12);
+  g.fillRect(12, 18, 40, 4);
   g.fillStyle = '#b09010';
-  g.fillRect(6, 10, 20, 1);
+  g.fillRect(12, 20, 40, 2);
   // wrench in right hand
   g.fillStyle = '#9aa1a8';
-  g.fillRect(27, 24, 3, 10);
-  g.fillRect(25, 22, 7, 3);
+  g.fillRect(54, 48, 6, 20);
+  g.fillRect(50, 44, 14, 6);
   g.fillStyle = '#575d64';
-  g.fillRect(27, 23, 3, 1);
+  g.fillRect(54, 46, 6, 2);
   g.restore();
 }

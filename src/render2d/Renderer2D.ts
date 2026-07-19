@@ -1,11 +1,12 @@
 import { DispenserQueue } from '../core/queue';
 import { Dir, GridPos, LevelDef } from '../core/types';
 import { CELL, drawFlooz, drawMascot, drawPlate, PAL, pieceSprite } from './sprites';
+import { extract, refDigitRect, sheetsReady } from './sheet';
 
-const HUD_H = 20;
-const LEFT_W = 40;
-const BAR_W = 16;
-const GAP = 4;
+const HUD_H = 40;
+const LEFT_W = 80;
+const BAR_W = 32;
+const GAP = 8;
 
 interface Popup {
   x: number;
@@ -31,26 +32,26 @@ export interface HudState {
   level: number | string;
   /** Pipes still required (D readout). */
   pipesLeft: number;
-  /** Pre-flow countdown 0..1 (drains the right-hand bar red). */
+  /** Pre-flow countdown 0..1 (drains the bar red). */
   countdownFrac: number;
-  /** Pipeline progress 0..1 once flowing (fills the bar yellow). */
+  /** Pipeline progress 0..1 once flowing (fills the bar green). */
   progressFrac: number;
   paused: boolean;
   fastFlow: boolean;
 }
 
 /**
- * Low-resolution renderer laid out like the 1989 screen: HUD strip across
- * the top, dispenser box top-left with the mascot below it, the plated
- * board filling the middle, and a vertical flooz timer bar on the right.
+ * 2× resolution renderer laid out like the 1989 screen: HUD strip across
+ * the top, dispenser box and flooz timer bar on the left, the plated
+ * board filling the middle.
  * Drawn into a small framebuffer, integer-upscaled with nearest-neighbor.
  */
 export class Renderer2D {
   private buffer: HTMLCanvasElement;
   private g: CanvasRenderingContext2D;
   private out: CanvasRenderingContext2D;
-  private bufW = 320;
-  private bufH = 200;
+  private bufW = 640;
+  private bufH = 400;
   private boardX = 0;
   private boardY = 0;
   private level: { gridW: number; gridH: number } = { gridW: 10, gridH: 7 };
@@ -117,9 +118,9 @@ export class Renderer2D {
     const { gridW, gridH } = level;
     // thin metal frame around the whole board
     g.fillStyle = PAL.frameLo;
-    g.fillRect(this.boardX - 3, this.boardY - 3, gridW * CELL + 6, gridH * CELL + 6);
+    g.fillRect(this.boardX - 6, this.boardY - 6, gridW * CELL + 12, gridH * CELL + 12);
     g.fillStyle = PAL.frame;
-    g.fillRect(this.boardX - 2, this.boardY - 2, gridW * CELL + 4, gridH * CELL + 4);
+    g.fillRect(this.boardX - 4, this.boardY - 4, gridW * CELL + 8, gridH * CELL + 8);
     for (let y = 0; y < gridH; y++) {
       for (let x = 0; x < gridW; x++) {
         const o = this.cellOrigin(x, y);
@@ -130,16 +131,16 @@ export class Renderer2D {
     for (const w of level.wraps) {
       const o = this.cellOrigin(w.x, w.y);
       g.fillStyle = PAL.black;
-      const t = 3;
-      if (w.side === 0) g.fillRect(o.x + 4, o.y, CELL - 8, t);
-      if (w.side === 2) g.fillRect(o.x + 4, o.y + CELL - t, CELL - 8, t);
-      if (w.side === 3) g.fillRect(o.x, o.y + 4, t, CELL - 8);
-      if (w.side === 1) g.fillRect(o.x + CELL - t, o.y + 4, t, CELL - 8);
+      const t = 6;
+      if (w.side === 0) g.fillRect(o.x + 8, o.y, CELL - 16, t);
+      if (w.side === 2) g.fillRect(o.x + 8, o.y + CELL - t, CELL - 16, t);
+      if (w.side === 3) g.fillRect(o.x, o.y + 8, t, CELL - 16);
+      if (w.side === 1) g.fillRect(o.x + CELL - t, o.y + 8, t, CELL - 16);
       g.fillStyle = PAL.ledYellow;
-      if (w.side === 0) g.fillRect(o.x + 4, o.y, 2, t);
-      if (w.side === 2) g.fillRect(o.x + 4, o.y + CELL - t, 2, t);
-      if (w.side === 3) g.fillRect(o.x, o.y + 4, t, 2);
-      if (w.side === 1) g.fillRect(o.x + CELL - t, o.y + 4, t, 2);
+      if (w.side === 0) g.fillRect(o.x + 8, o.y, 4, t);
+      if (w.side === 2) g.fillRect(o.x + 8, o.y + CELL - t, 4, t);
+      if (w.side === 3) g.fillRect(o.x, o.y + 8, t, 4);
+      if (w.side === 1) g.fillRect(o.x + CELL - t, o.y + 8, t, 4);
     }
   }
 
@@ -166,12 +167,13 @@ export class Renderer2D {
     ch: number,
     progress: number,
     reversed: boolean,
+    startExit?: Dir,
   ): void {
     const o = this.cellOrigin(x, y);
     const g = this.g;
     g.save();
     g.translate(o.x, o.y);
-    drawFlooz(g, kind, ch, progress, reversed);
+    drawFlooz(g, kind, ch, progress, reversed, startExit);
     g.restore();
   }
 
@@ -182,10 +184,10 @@ export class Renderer2D {
     const g = this.g;
     g.save();
     g.strokeStyle = valid ? color : PAL.red;
-    g.lineWidth = 2;
-    g.setLineDash([3, 2]);
-    g.lineDashOffset = -Math.floor(this.frameCount / 4) % 5;
-    g.strokeRect(o.x + 1, o.y + 1, CELL - 2, CELL - 2);
+    g.lineWidth = 4;
+    g.setLineDash([6, 4]);
+    g.lineDashOffset = -Math.floor(this.frameCount / 4) % 10;
+    g.strokeRect(o.x + 2, o.y + 2, CELL - 4, CELL - 4);
     g.restore();
   }
 
@@ -195,44 +197,69 @@ export class Renderer2D {
     const x = GAP;
     let y = HUD_H + GAP;
     for (const q of queues) {
-      const innerH = q.depth * (CELL + 2) + 4;
-      const boxH = innerH + 8;
+      const innerH = q.depth * (CELL + 4) + 8;
+      const boxH = innerH + 16;
       // metal frame
       g.fillStyle = PAL.frameLo;
       g.fillRect(x, y, LEFT_W, boxH);
       g.fillStyle = PAL.frame;
-      g.fillRect(x + 1, y + 1, LEFT_W - 2, boxH - 2);
+      g.fillRect(x + 2, y + 2, LEFT_W - 4, boxH - 4);
       g.fillStyle = PAL.black;
-      g.fillRect(x + 4, y + 4, LEFT_W - 8, innerH);
+      g.fillRect(x + 8, y + 8, LEFT_W - 16, innerH);
       const items = q.peek();
       for (let i = 0; i < q.depth; i++) {
-        const sy = y + 4 + innerH - 2 - (i + 1) * (CELL + 2) + 2;
+        const sy = y + 8 + innerH - 4 - (i + 1) * (CELL + 4) + 4;
         const sx = x + (LEFT_W - CELL) / 2;
         const kind = items[i];
         if (kind) g.drawImage(pieceSprite(kind), sx, sy);
         if (i === 0) {
           // subtle marker brackets around the next piece
           g.fillStyle = PAL.ledYellow;
-          g.fillRect(sx - 3, sy, 2, 6);
-          g.fillRect(sx - 3, sy + CELL - 6, 2, 6);
-          g.fillRect(sx + CELL + 1, sy, 2, 6);
-          g.fillRect(sx + CELL + 1, sy + CELL - 6, 2, 6);
+          g.fillRect(sx - 6, sy, 4, 12);
+          g.fillRect(sx - 6, sy + CELL - 12, 4, 12);
+          g.fillRect(sx + CELL + 2, sy, 4, 12);
+          g.fillRect(sx + CELL + 2, sy + CELL - 12, 4, 12);
         }
       }
       y += boxH + GAP;
     }
-    // Mascot overlaps the bottom-left corner, in front of the dispenser
-    // column — only when a single dispenser leaves him room to stand.
+    // Mascot stands in the leftover space BELOW the dispenser box so he
+    // never covers the next-piece slot.
     if (queues.length === 1) {
-      drawMascot(g, x + 2, this.bufH - 50);
+      const h = this.bufH - y - 4;
+      if (h >= 40) {
+        drawMascot(g, x + Math.round((LEFT_W - h * 0.63) / 2), y, h);
+      }
     }
   }
 
   // ---------- HUD ----------
 
-  /** Chunky LED-segment digit, 6x10 px with 2px strokes. */
+  private digitCache = new Map<string, HTMLCanvasElement>();
+
+  /** Bitmap digit from the sprite sheet, tinted to the readout color. */
+  private bitmapDigit(d: number, color: string): HTMLCanvasElement {
+    const key = `${d}:${color}`;
+    let c = this.digitCache.get(key);
+    if (!c) {
+      c = extract('ref', refDigitRect(d), 12, 20);
+      const g = c.getContext('2d')!;
+      g.globalCompositeOperation = 'source-atop';
+      g.globalAlpha = 0.55;
+      g.fillStyle = color;
+      g.fillRect(0, 0, 12, 20);
+      this.digitCache.set(key, c);
+    }
+    return c;
+  }
+
+  /** Chunky LED-segment digit, 12x20 px with 4px strokes. */
   private ledDigit(x: number, y: number, d: number, color: string): void {
     const g = this.g;
+    if (sheetsReady()) {
+      g.drawImage(this.bitmapDigit(d, color), x, y);
+      return;
+    }
     //   0
     //  1 2
     //   3
@@ -252,27 +279,27 @@ export class Renderer2D {
     ];
     const s = SEG[d]!;
     g.fillStyle = color;
-    if (s[0]) g.fillRect(x, y, 6, 2);
-    if (s[1]) g.fillRect(x, y, 2, 6);
-    if (s[2]) g.fillRect(x + 4, y, 2, 6);
-    if (s[3]) g.fillRect(x, y + 4, 6, 2);
-    if (s[4]) g.fillRect(x, y + 4, 2, 6);
-    if (s[5]) g.fillRect(x + 4, y + 4, 2, 6);
-    if (s[6]) g.fillRect(x, y + 8, 6, 2);
+    if (s[0]) g.fillRect(x, y, 12, 4);
+    if (s[1]) g.fillRect(x, y, 4, 12);
+    if (s[2]) g.fillRect(x + 8, y, 4, 12);
+    if (s[3]) g.fillRect(x, y + 8, 12, 4);
+    if (s[4]) g.fillRect(x, y + 8, 4, 12);
+    if (s[5]) g.fillRect(x + 8, y + 8, 4, 12);
+    if (s[6]) g.fillRect(x, y + 16, 12, 4);
   }
 
   private ledNumber(x: number, y: number, value: number, digits: number, color: string): number {
     const s = Math.max(0, Math.round(value)).toString().padStart(digits, '0').slice(-digits);
-    for (let i = 0; i < s.length; i++) this.ledDigit(x + i * 7, y, Number(s[i]), color);
-    return x + s.length * 7;
+    for (let i = 0; i < s.length; i++) this.ledDigit(x + i * 14, y, Number(s[i]), color);
+    return x + s.length * 14;
   }
 
   private label(s: string, x: number, y: number, color: string): number {
     const g = this.g;
-    g.font = `bold 8px 'Courier New', monospace`;
+    g.font = `bold 16px 'Courier New', monospace`;
     g.textBaseline = 'top';
     g.fillStyle = PAL.black;
-    g.fillText(s, x + 1, y + 1);
+    g.fillText(s, x + 2, y + 2);
     g.fillStyle = color;
     g.fillText(s, x, y);
     return x + g.measureText(s).width;
@@ -281,96 +308,86 @@ export class Renderer2D {
   private inset(x: number, y: number, w: number, h: number): void {
     const g = this.g;
     g.fillStyle = PAL.black;
-    g.fillRect(x - 2, y - 2, w + 4, h + 4);
+    g.fillRect(x - 4, y - 4, w + 8, h + 8);
     g.fillStyle = PAL.hudInset;
-    g.fillRect(x - 1, y - 1, w + 2, h + 2);
+    g.fillRect(x - 2, y - 2, w + 4, h + 4);
   }
 
   drawHud(s: HudState): void {
     const g = this.g;
-    // red-brown bar with metal trim and angled end caps
-    const cap = 9;
-    const bar = (inset: number, color: string) => {
-      g.fillStyle = color;
-      g.beginPath();
-      g.moveTo(2 + cap + inset, 1 + inset);
-      g.lineTo(this.bufW - 2 - cap - inset, 1 + inset);
-      g.lineTo(this.bufW - 2 - inset * 1.5, HUD_H / 2);
-      g.lineTo(this.bufW - 2 - cap - inset, HUD_H - 1 - inset);
-      g.lineTo(2 + cap + inset, HUD_H - 1 - inset);
-      g.lineTo(2 + inset * 1.5, HUD_H / 2);
-      g.closePath();
-      g.fill();
-    };
-    bar(0, PAL.frame);
-    bar(1, PAL.frameLo);
-    bar(2, PAL.hudBar);
+    // Simple flat HUD bar across the top — faithful to the original
+    g.fillStyle = PAL.frame;
+    g.fillRect(2, 2, this.bufW - 4, HUD_H - 4);
+    g.fillStyle = PAL.frameLo;
+    g.fillRect(3, 3, this.bufW - 6, HUD_H - 6);
+    g.fillStyle = PAL.hudBar;
+    g.fillRect(4, 4, this.bufW - 8, HUD_H - 8);
     g.fillStyle = PAL.hudBarHi;
-    g.fillRect(2 + cap, 3, this.bufW - 4 - 2 * cap, 1);
+    g.fillRect(4, 4, this.bufW - 8, 2);
 
-    const digY = 5;
-    const labY = 6;
-    let x = 8;
-    x = this.label('P1:', x, labY, PAL.white) + 4;
-    this.inset(x, digY, 7 * 7 - 1, 10);
-    x = this.ledNumber(x + 1, digY, s.score, 7, PAL.ledYellow) + 10;
-    x = this.label('P2:', x, labY, PAL.white) + 4;
-    this.inset(x, digY, 7 * 7 - 1, 10);
-    this.ledNumber(x + 1, digY, s.score2 ?? 0, 7, PAL.ledGreen);
+    const digY = 10;
+    const labY = 12;
+    let x = 16;
+    x = this.label('P1:', x, labY, PAL.white) + 8;
+    this.inset(x, digY, 7 * 14 - 2, 20);
+    x = this.ledNumber(x + 2, digY, s.score, 7, PAL.ledYellow) + 20;
+    x = this.label('P2:', x, labY, PAL.white) + 8;
+    this.inset(x, digY, 7 * 14 - 2, 20);
+    this.ledNumber(x + 2, digY, s.score2 ?? 0, 7, PAL.ledGreen);
 
     // right-aligned L and D readouts
-    const dNumX = this.bufW - 10 - 13;
-    this.inset(dNumX, digY, 14, 10);
-    this.ledNumber(dNumX + 1, digY, s.pipesLeft, 2, PAL.ledBlue);
-    this.label('D:', dNumX - 15, labY, PAL.white);
-    const lNumX = dNumX - 15 - 10 - 13;
-    this.inset(lNumX, digY, 14, 10);
+    const dNumX = this.bufW - 20 - 26;
+    this.inset(dNumX, digY, 28, 20);
+    this.ledNumber(dNumX + 2, digY, s.pipesLeft, 2, PAL.ledBlue);
+    this.label('D:', dNumX - 30, labY, PAL.white);
+    const lNumX = dNumX - 30 - 20 - 26;
+    this.inset(lNumX, digY, 28, 20);
     if (typeof s.level === 'number') {
-      this.ledNumber(lNumX + 1, digY, s.level, 2, PAL.ledBlue);
+      this.ledNumber(lNumX + 2, digY, s.level, 2, PAL.ledBlue);
     } else {
-      this.label('BN', lNumX + 2, labY, PAL.ledBlue);
+      this.label('BN', lNumX + 4, labY, PAL.ledBlue);
     }
-    this.label('L:', lNumX - 15, labY, PAL.white);
+    this.label('L:', lNumX - 30, labY, PAL.white);
 
-    // right-hand vertical flooz timer bar: rounded metal frame, fat fill
+    // RIGHT-hand vertical flooz timer bar (original Amiga position)
     const bx = this.bufW - GAP - BAR_W;
     const by = HUD_H + GAP;
     const bh = this.bufH - by - GAP;
     g.fillStyle = PAL.frame;
-    g.fillRect(bx + 1, by, BAR_W - 2, bh);
-    g.fillRect(bx, by + 1, BAR_W, bh - 2);
+    g.fillRect(bx + 2, by, BAR_W - 4, bh);
+    g.fillRect(bx, by + 2, BAR_W, bh - 4);
     g.fillStyle = PAL.frameLo;
-    g.fillRect(bx + BAR_W - 2, by + 1, 1, bh - 2);
-    g.fillRect(bx + 1, by + bh - 2, BAR_W - 2, 1);
+    g.fillRect(bx + BAR_W - 4, by + 2, 2, bh - 4);
+    g.fillRect(bx + 2, by + bh - 4, BAR_W - 4, 2);
     g.fillStyle = PAL.black;
-    g.fillRect(bx + 3, by + 3, BAR_W - 6, bh - 6);
+    g.fillRect(bx + 6, by + 6, BAR_W - 12, bh - 12);
     if (s.countdownFrac > 0) {
-      const fh = Math.round((bh - 10) * Math.min(1, s.countdownFrac));
+      const fh = Math.round((bh - 20) * Math.min(1, s.countdownFrac));
       g.fillStyle = PAL.red;
-      g.fillRect(bx + 5, by + 5 + (bh - 10 - fh), BAR_W - 10, fh);
+      g.fillRect(bx + 10, by + 10 + (bh - 20 - fh), BAR_W - 20, fh);
       g.fillStyle = PAL.hudBarHi;
-      g.fillRect(bx + 5, by + 5 + (bh - 10 - fh), 1, fh);
+      g.fillRect(bx + 10, by + 10 + (bh - 20 - fh), 2, fh);
     } else {
-      const fh = Math.round((bh - 10) * Math.min(1, s.progressFrac));
+      const fh = Math.round((bh - 20) * Math.min(1, s.progressFrac));
       g.fillStyle = PAL.flooz;
-      g.fillRect(bx + 5, by + 5 + (bh - 10 - fh), BAR_W - 10, fh);
+      g.fillRect(bx + 10, by + 10 + (bh - 20 - fh), BAR_W - 20, fh);
       g.fillStyle = PAL.floozHi;
-      g.fillRect(bx + 5, by + 5 + (bh - 10 - fh), 1, fh);
+      g.fillRect(bx + 10, by + 10 + (bh - 20 - fh), 2, fh);
     }
 
     if (s.fastFlow && s.countdownFrac <= 0) {
-      this.label('FAST', bx - 26, this.bufH - 12, PAL.ledYellow);
+      this.label('FAST', bx - 52, this.bufH - 24, PAL.ledYellow);
     }
     if (s.paused) {
       const cx = this.boardX + (this.level.gridW * CELL) / 2;
       const cy = this.boardY + (this.level.gridH * CELL) / 2;
       g.fillStyle = PAL.black;
-      g.fillRect(cx - 34, cy - 8, 68, 16);
+      g.fillRect(cx - 68, cy - 16, 136, 32);
       g.fillStyle = PAL.frame;
-      g.fillRect(cx - 33, cy - 7, 66, 14);
+      g.fillRect(cx - 66, cy - 14, 132, 28);
       g.fillStyle = PAL.hudInset;
-      g.fillRect(cx - 31, cy - 5, 62, 10);
-      this.label('PAUSED', cx - 18, cy - 4, PAL.ledYellow);
+      g.fillRect(cx - 62, cy - 10, 124, 20);
+      this.label('PAUSED', cx - 36, cy - 8, PAL.ledYellow);
     }
   }
 
@@ -391,12 +408,12 @@ export class Renderer2D {
     const o = this.cellOrigin(pos.x, pos.y);
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2;
-      const sp = 14 + Math.random() * 22;
+      const sp = 28 + Math.random() * 44;
       this.particles.push({
         x: o.x + CELL / 2,
         y: o.y + CELL / 2,
         vx: Math.cos(a) * sp,
-        vy: Math.sin(a) * sp - 18,
+        vy: Math.sin(a) * sp - 36,
         ageMs: 0,
         lifeMs: 450 + Math.random() * 250,
         color,
@@ -413,11 +430,11 @@ export class Renderer2D {
         this.particles.splice(i, 1);
         continue;
       }
-      p.vy += 60 * (dtMs / 1000);
+      p.vy += 120 * (dtMs / 1000);
       p.x += p.vx * (dtMs / 1000);
       p.y += p.vy * (dtMs / 1000);
       g.fillStyle = p.color;
-      g.fillRect(Math.round(p.x), Math.round(p.y), 2, 2);
+      g.fillRect(Math.round(p.x), Math.round(p.y), 4, 4);
     }
     for (let i = this.popups.length - 1; i >= 0; i--) {
       const p = this.popups[i]!;
@@ -428,12 +445,12 @@ export class Renderer2D {
       }
       const t = p.ageMs / 900;
       const g2 = this.g;
-      g2.font = `bold 8px 'Courier New', monospace`;
+      g2.font = `bold 16px 'Courier New', monospace`;
       g2.textBaseline = 'top';
       g2.fillStyle = PAL.black;
-      g2.fillText(p.text, p.x - p.text.length * 2.5 + 1, p.y - t * 12 + 1);
+      g2.fillText(p.text, p.x - p.text.length * 5 + 2, p.y - t * 24 + 2);
       g2.fillStyle = p.color;
-      g2.fillText(p.text, p.x - p.text.length * 2.5, p.y - t * 12);
+      g2.fillText(p.text, p.x - p.text.length * 5, p.y - t * 24);
     }
   }
 
