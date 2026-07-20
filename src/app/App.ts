@@ -29,7 +29,11 @@ interface Session {
   training: boolean;
   /** Easy mode: dispenser biased toward pieces the pipeline needs. */
   easy: boolean;
+  /** Assist overlay: render the path finder's view of the pipeline. */
+  assist: boolean;
   levelIndex: number; // 0-based
+  /** Where this session began (level picker) — for PLAY AGAIN. */
+  startLevelIndex: number;
   totals: [number, number];
   seedBase: number;
 }
@@ -47,6 +51,10 @@ export class App {
   private audioUnlocked = false;
   private lastMusicVol = 0.35;
   private lastRound: LastRoundSetup | null = null;
+  /** Title-screen picks, remembered across sessions in this visit. */
+  private titleLevel = 1; // 1-based, as displayed
+  private prefEasy = true;
+  private prefAssist = true;
 
   constructor() {
     const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -123,24 +131,26 @@ export class App {
     return (['game1', 'game2', 'game3', 'game4'] as const)[Math.min(3, Math.floor(levelIndex / 9))]!;
   }
 
-  /** Scanlines only make sense over the retro pixel framebuffer. */
+  /** Scanlines come free with the retro pixel framebuffer, off otherwise. */
   private applyScanlines(): void {
     const s = getSettings();
-    document
-      .getElementById('scanlines')!
-      .classList.toggle('off', !s.scanlines || s.renderMode !== 'retro');
+    document.getElementById('scanlines')!.classList.toggle('off', s.renderMode !== 'retro');
   }
 
   private newSession(overrides: Partial<Session> = {}): Session {
-    return {
+    const s: Session = {
       mode: 'basic',
       training: false,
-      easy: true, // friendly default; classic random queue via the modes screen
-      levelIndex: 0,
+      easy: this.prefEasy,
+      assist: this.prefAssist,
+      levelIndex: this.titleLevel - 1,
+      startLevelIndex: 0,
       totals: [0, 0],
       seedBase: (Date.now() % 100000) + 7,
       ...overrides,
     };
+    s.startLevelIndex = s.levelIndex;
+    return s;
   }
 
   // ---------- title ----------
@@ -151,11 +161,19 @@ export class App {
     this.music.playTrack('title');
     this.renderer.setBoardSize(10, 7);
 
+    const levelOptions = LEVELS.map(
+      (lv, i) =>
+        `<option value="${i + 1}" ${i + 1 === this.titleLevel ? 'selected' : ''}>LEVEL ${lv.id}</option>`,
+    ).join('');
     const el = this.menu(`
       <div class="title-logo">PIPEDREAMZ</div>
       <div class="title-sub">an original tribute to the classic 1989 pipe-building puzzle</div>
       <div class="menu-list">
         <button data-act="start" class="primary">START</button>
+      </div>
+      <div class="title-opts">
+        <select data-act="level">${levelOptions}</select>
+        <a data-act="easy" class="opt-toggle">EASY QUEUE: ${this.prefEasy ? 'ON' : 'OFF'}</a>
       </div>
       <div class="menu-secondary">
         <a data-act="modes">modes</a> ·
@@ -169,13 +187,22 @@ export class App {
       this.session = this.newSession();
       this.startRound();
     });
+    el.querySelector('[data-act=level]')!.addEventListener('change', (ev) => {
+      this.titleLevel = Number((ev.target as HTMLSelectElement).value) || 1;
+      this.sfx.play('menu');
+    });
+    el.querySelector('[data-act=easy]')!.addEventListener('click', (ev) => {
+      this.prefEasy = !this.prefEasy;
+      (ev.target as HTMLElement).textContent = `EASY QUEUE: ${this.prefEasy ? 'ON' : 'OFF'}`;
+      this.sfx.play('menu');
+    });
     el.querySelector('[data-act=modes]')!.addEventListener('click', () => {
       this.sfx.play('menu');
       this.showModeSelect();
     });
     el.querySelector('[data-act=scores]')!.addEventListener('click', () => {
       this.sfx.play('menu');
-      this.showHighScores('basic');
+      this.showHighScores();
     });
     el.querySelector('[data-act=settings]')!.addEventListener('click', () => {
       this.sfx.play('menu');
@@ -187,7 +214,7 @@ export class App {
 
   private showModeSelect(): void {
     let training = false;
-    let easy = true;
+    let easy = this.prefEasy;
     const el = this.menu(`
       <h2 class="panel-heading">SELECT MODE</h2>
       <div class="menu-list">
@@ -195,7 +222,7 @@ export class App {
         <button data-mode="expert">EXPERT ONE-PLUMBER</button>
         <button data-mode="competitive">COMPETITIVE TWO-PLUMBER</button>
         <button data-act="training">TRAINING: OFF</button>
-        <button data-act="easy">EASY QUEUE: ON</button>
+        <button data-act="easy">EASY QUEUE: ${easy ? 'ON' : 'OFF'}</button>
         <button data-act="back">BACK</button>
       </div>
       <div class="menu-note">Basic: one dispenser, five pieces queued.<br/>
@@ -273,11 +300,17 @@ export class App {
       s.seedBase + s.levelIndex * 1013,
       s.training,
       s.easy,
+      s.assist,
       {
         onRoundOver: (result) => this.showRoundEnd(result),
         onQuit: () => this.showTitle(),
         onEasyToggle: (on) => {
           s.easy = on;
+          this.prefEasy = on;
+        },
+        onAssistToggle: (on) => {
+          s.assist = on;
+          this.prefAssist = on;
         },
         musicOn: () => this.music.volume > 0,
         toggleMusic: () => this.toggleMusic(),
@@ -403,9 +436,14 @@ export class App {
       setup.seed,
       setup.training,
       setup.easyInitial,
+      this.session?.assist ?? true,
       {
         onRoundOver: () => this.showRoundEnd(result, true),
         onQuit: () => this.showRoundEnd(result, true),
+        onAssistToggle: (on) => {
+          if (this.session) this.session.assist = on;
+          this.prefAssist = on;
+        },
         musicOn: () => this.music.volume > 0,
         toggleMusic: () => this.toggleMusic(),
       },
@@ -464,11 +502,37 @@ export class App {
 
     finalize('PLAYER 1', s.totals[0], () => {
       if (s.mode === 'competitive') {
-        finalize('PLAYER 2', s.totals[1], () => this.showHighScores(s.mode));
+        finalize('PLAYER 2', s.totals[1], () => this.showPostGame());
       } else {
-        this.showHighScores(s.mode);
+        this.showPostGame();
       }
     });
+  }
+
+  /** End-of-game screen: this mode's scores, then play again or title. */
+  private showPostGame(): void {
+    const s = this.session!;
+    this.clearScreen();
+    const el = this.menu(`
+      <h2 class="panel-heading">HIGH SCORES — ${s.mode.toUpperCase()}</h2>
+      <table class="scores">${this.scoreRows(s.mode)}</table>
+      <div class="menu-list">
+        <button data-act="again">PLAY AGAIN ▶</button>
+        <button data-act="back">TITLE</button>
+      </div>
+    `);
+    el.querySelector('[data-act=again]')!.addEventListener('click', () => {
+      this.sfx.play('menu');
+      this.session = this.newSession({
+        mode: s.mode,
+        training: s.training,
+        easy: s.easy,
+        assist: s.assist,
+        levelIndex: s.startLevelIndex,
+      });
+      this.startRound();
+    });
+    el.querySelector('[data-act=back]')!.addEventListener('click', () => this.showTitle());
   }
 
   /** Era-style 3-initial name entry. */
@@ -513,10 +577,9 @@ export class App {
     window.addEventListener('keydown', onKey);
   }
 
-  private showHighScores(mode: GameMode): void {
-    this.clearScreen();
+  private scoreRows(mode: GameMode): string {
     const list = getHighScores(mode);
-    const rows = list.length
+    return list.length
       ? list
           .map(
             (e, i) =>
@@ -524,19 +587,24 @@ export class App {
           )
           .join('')
       : '<tr><td colspan="4">No scores yet — be the first plumber!</td></tr>';
+  }
+
+  /** High-score browser (from the title): all modes at once, no controls. */
+  private showHighScores(): void {
+    this.clearScreen();
+    const order: GameMode[] = ['basic', 'expert', 'competitive'];
+    const sections = order
+      .map(
+        (mode) => `
+          <div class="scores-mode">${mode.toUpperCase()}</div>
+          <table class="scores">${this.scoreRows(mode)}</table>`,
+      )
+      .join('');
     const el = this.menu(`
-      <h2 class="panel-heading">HIGH SCORES — ${mode.toUpperCase()}</h2>
-      <table class="scores">${rows}</table>
-      <div class="menu-list">
-        <button data-act="cycle">NEXT MODE</button>
-        <button data-act="back">TITLE</button>
-      </div>
+      <h2 class="panel-heading">HIGH SCORES</h2>
+      ${sections}
+      <div class="menu-list"><button data-act="back">TITLE</button></div>
     `);
-    el.querySelector('[data-act=cycle]')!.addEventListener('click', () => {
-      const order: GameMode[] = ['basic', 'expert', 'competitive'];
-      this.sfx.play('menu');
-      this.showHighScores(order[(order.indexOf(mode) + 1) % order.length]!);
-    });
     el.querySelector('[data-act=back]')!.addEventListener('click', () => this.showTitle());
   }
 
@@ -550,7 +618,6 @@ export class App {
         <button data-act="music">MUSIC VOLUME: ${Math.round(settings.musicVol * 100)}%</button>
         <button data-act="sfx">SFX VOLUME: ${Math.round(settings.sfxVol * 100)}%</button>
         <button data-act="gfx">GRAPHICS: ${(settings.renderMode ?? 'smooth').toUpperCase()}</button>
-        <button data-act="scan">SCANLINES: ${settings.scanlines ? 'ON' : 'OFF'}</button>
         <button data-act="back">BACK</button>
       </div>
     `);
@@ -574,12 +641,6 @@ export class App {
       this.sfx.setVolume(v / 100);
       this.sfx.play('menu');
       (ev.target as HTMLElement).textContent = `SFX VOLUME: ${v}%`;
-    });
-    el.querySelector('[data-act=scan]')!.addEventListener('click', (ev) => {
-      const on = !getSettings().scanlines;
-      saveSettings({ scanlines: on });
-      this.applyScanlines();
-      (ev.target as HTMLElement).textContent = `SCANLINES: ${on ? 'ON' : 'OFF'}`;
     });
     el.querySelector('[data-act=back]')!.addEventListener('click', () => this.showTitle());
   }

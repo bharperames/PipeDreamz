@@ -28,6 +28,8 @@ export interface PlayingCallbacks {
   onQuit(): void;
   /** Live easy-queue switch changed; lets the session remember it. */
   onEasyToggle?(on: boolean): void;
+  /** Assist overlay checkbox changed; lets the session remember it. */
+  onAssistToggle?(on: boolean): void;
   /** Current music state for the HUD chip. */
   musicOn?(): boolean;
   /** Toggle music; returns the new state. */
@@ -53,8 +55,8 @@ export class PlayingScreen {
   private replayCursor = 0;
   private predictions: PlaceableKind[] = [];
   private predictionsAt = -1000;
-  /** Debug overlay: visualize the forward path finder (G toggles). */
-  private showPathDebug = false;
+  /** Assist overlay: visualize the forward path finder (checkbox or G). */
+  private assist: boolean;
 
   constructor(
     private renderer: Renderer2D,
@@ -64,11 +66,13 @@ export class PlayingScreen {
     seed: number,
     training: boolean,
     private easyQueue: boolean,
+    assistInitial: boolean,
     private callbacks: PlayingCallbacks,
     private totals: [number, number],
     /** When set, this script drives the round instead of user input. */
     private replay?: RecordedAction[],
   ) {
+    this.assist = assistInitial;
     this.round = new GameRound(
       {
         level,
@@ -94,8 +98,9 @@ export class PlayingScreen {
       return;
     }
     if (e.code === 'KeyG') {
-      // Render-only debug view — allowed any time, never recorded.
-      this.showPathDebug = !this.showPathDebug;
+      // Assist overlay shortcut — render-only, allowed any time
+      // (including replays), never recorded.
+      this.toggleAssist();
       return;
     }
     if (this.replay) return; // playback drives the round, not keys
@@ -146,6 +151,12 @@ export class PlayingScreen {
       this.sfx.play('menu');
       return;
     }
+    // Assist checkbox is render-only, so it works during replays too.
+    if (this.renderer.hitAssistSwitch(e.clientX, e.clientY)) {
+      this.toggleAssist();
+      this.sfx.play('menu');
+      return;
+    }
     if (this.replay) return; // playback drives the round, not clicks
     if (this.paused || this.round.over) return;
     if (this.renderer.hitEasySwitch(e.clientX, e.clientY)) {
@@ -163,6 +174,11 @@ export class PlayingScreen {
     if (!this.round.grid.inBounds(cell)) return;
     const dispenser = e.button === 2 || this.shiftHeld ? 1 : 0;
     this.place(0, cell, dispenser as 0 | 1);
+  }
+
+  private toggleAssist(): void {
+    this.assist = !this.assist;
+    this.callbacks.onAssistToggle?.(this.assist);
   }
 
   private place(player: PlayerId, pos: GridPos, dispenser: 0 | 1): void {
@@ -260,8 +276,8 @@ export class PlayingScreen {
       );
     }
 
-    // Forward path-finder debug overlay (G key).
-    if (this.showPathDebug && !round.over) r.drawPathDebug(round.debugPath());
+    // Assist overlay: the forward path finder's view of the pipeline.
+    if (this.assist && !round.over) r.drawPathDebug(round.debugPath());
 
     // Cursors
     this.cursorCells.forEach((cell, p) => {
@@ -279,6 +295,7 @@ export class PlayingScreen {
       round.queues,
       round.easyQueue,
       round.easyQueue ? this.predictions : undefined,
+      this.assist,
     );
     r.updateOverlays(dtMs);
 

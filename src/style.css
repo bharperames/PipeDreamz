@@ -247,6 +247,45 @@ body {
   background: #274a2e;
 }
 
+.title-opts {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.title-opts select {
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 5px 8px;
+  background: #14181c;
+  color: #ffe49c;
+  border: 1px solid #b6834b;
+  cursor: pointer;
+}
+
+.title-opts .opt-toggle {
+  cursor: pointer;
+  color: #b8c3b8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.title-opts .opt-toggle:hover {
+  color: var(--green);
+}
+
+.scores-mode {
+  margin-top: 14px;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #b6834b;
+}
+
 .menu-secondary {
   margin-top: 16px;
   font-size: 13px;

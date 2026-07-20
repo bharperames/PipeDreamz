@@ -40,6 +40,59 @@ describe('DispenserQueue', () => {
     expect(hits / total).toBeGreaterThan(0.8);
   });
 
+  it('sticky refresh keeps slots the caller still wants', () => {
+    const q = new DispenserQueue(mulberry32(11), 5);
+    const before = [...q.peek()];
+    // Keep everything: refresh must be a no-op.
+    q.refreshTail(2, () => true);
+    expect([...q.peek()]).toEqual(before);
+    // Keep nothing: slots 0-1 stay, 2-4 re-roll (deterministic seed —
+    // verify the near slots were untouched).
+    q.refreshTail(2, () => false);
+    expect(q.peek()[0]).toBe(before[0]);
+    expect(q.peek()[1]).toBe(before[1]);
+  });
+
+  it('sticky refresh never thrashes a needed piece out of the far queue', () => {
+    // Easy round, empty board: the gap after the START at (1,3) (exit E)
+    // is (2,3), which accepts H / NW / SW / X. Such a piece sitting in
+    // the far queue must survive refreshes triggered by unrelated
+    // placements — unless it is heavily damped (many visible copies or
+    // a discarded kind), which is the designed exception. Placements
+    // stay NEAR the flow front (< 3 tiles) and off the gap, so only
+    // duplicate damping applies; ≤ 2 copies keeps a wanted kind well
+    // above the sticky threshold.
+    const level = makeLevel({ delayMs: 600000 });
+    const round = new GameRound(
+      { level, mode: 'basic', seed: 9, players: 1, easyQueue: true },
+      mulberry32(9),
+    );
+    const accepting = new Set(['H', 'NW', 'SW', 'X']);
+    const nearCells = [
+      { x: 0, y: 2 }, { x: 0, y: 4 }, { x: 1, y: 2 }, { x: 1, y: 4 },
+      { x: 0, y: 3 }, { x: 2, y: 2 }, { x: 2, y: 4 }, { x: 3, y: 3 },
+    ];
+    let checked = 0;
+    for (const pos of nearCells) {
+      const all = round.queues[0]!.peek();
+      const tailBefore = all.slice(2);
+      const copies = new Map<string, number>();
+      for (const k of all) copies.set(k, (copies.get(k) ?? 0) + 1);
+      const wanted = tailBefore.map((k) => accepting.has(k) && (copies.get(k) ?? 0) <= 2);
+      round.apply({ type: 'place', player: 0, pos, dispenser: 0 });
+      const tailAfter = round.queues[0]!.peek().slice(2);
+      // take() shifted the queue by one before the refresh, so old tail
+      // slot i sits at i-1 of the new view (old slots 3,4 → new 2,3).
+      for (let i = 1; i < tailBefore.length; i++) {
+        if (wanted[i]) {
+          expect(tailAfter[i - 1]).toBe(tailBefore[i]);
+          checked++;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0); // the scenario actually exercised the guard
+  });
+
   it('produces only placeable kinds with roughly uniform spread', () => {
     const q = new DispenserQueue(mulberry32(7), 5);
     const counts = new Map<string, number>();

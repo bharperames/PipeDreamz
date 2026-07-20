@@ -6,15 +6,15 @@
       "reactionMs": 200,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.404,
-    "avgScore": 158.4,
-    "medScore": 0,
-    "avgPipes": 7.656,
-    "avgCrosses": 0.084,
+    "games": 200,
+    "winRate": 0.555,
+    "avgScore": 531.25,
+    "medScore": 200,
+    "avgPipes": 9.29,
+    "avgCrosses": 0.19,
     "endRate": 0,
-    "avgDiscards": 4.912,
-    "fastRate": 0.328
+    "avgDiscards": 3.915,
+    "fastRate": 0.485
   },
   {
     "config": {
@@ -23,100 +23,100 @@
       "reactionMs": 200,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.5,
-    "avgScore": 539,
+    "games": 200,
+    "winRate": 0.545,
+    "avgScore": 731.5,
+    "medScore": 300,
+    "avgPipes": 9.61,
+    "avgCrosses": 0.395,
+    "endRate": 0,
+    "avgDiscards": 3.945,
+    "fastRate": 0.485
+  },
+  {
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.58,
+    "avgScore": 515.75,
+    "medScore": 200,
+    "avgPipes": 9.245,
+    "avgCrosses": 0.21,
+    "endRate": 0,
+    "avgDiscards": 3.995,
+    "fastRate": 0.505
+  },
+  {
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.405,
+    "avgScore": 545.25,
+    "medScore": 200,
+    "avgPipes": 8.26,
+    "avgCrosses": 0.315,
+    "endRate": 0,
+    "avgDiscards": 3.465,
+    "fastRate": 0.37
+  },
+  {
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 1000,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.545,
+    "avgScore": 524.25,
+    "medScore": 200,
+    "avgPipes": 9.165,
+    "avgCrosses": 0.165,
+    "endRate": 0,
+    "avgDiscards": 3.67,
+    "fastRate": 0.46
+  },
+  {
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 1000,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.465,
+    "avgScore": 627,
+    "medScore": 200,
+    "avgPipes": 8.905,
+    "avgCrosses": 0.38,
+    "endRate": 0,
+    "avgDiscards": 3.925,
+    "fastRate": 0.415
+  },
+  {
+    "config": {
+      "levelId": 1,
+      "bot": "looper",
+      "reactionMs": 200,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.565,
+    "avgScore": 415.5,
     "medScore": 150,
-    "avgPipes": 9.452,
-    "avgCrosses": 0.312,
+    "avgPipes": 8.995,
+    "avgCrosses": 0.29,
     "endRate": 0,
-    "avgDiscards": 5.46,
-    "fastRate": 0.448
-  },
-  {
-    "config": {
-      "levelId": 1,
-      "bot": "greedy",
-      "reactionMs": 500,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.44,
-    "avgScore": 95.8,
-    "medScore": 0,
-    "avgPipes": 7.62,
-    "avgCrosses": 0.064,
-    "endRate": 0,
-    "avgDiscards": 5.28,
-    "fastRate": 0.328
-  },
-  {
-    "config": {
-      "levelId": 1,
-      "bot": "greedy",
-      "reactionMs": 500,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.408,
-    "avgScore": 328,
-    "medScore": 100,
-    "avgPipes": 7.968,
-    "avgCrosses": 0.192,
-    "endRate": 0,
-    "avgDiscards": 4.62,
-    "fastRate": 0.352
-  },
-  {
-    "config": {
-      "levelId": 1,
-      "bot": "greedy",
-      "reactionMs": 1000,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.376,
-    "avgScore": 149.6,
-    "medScore": 0,
-    "avgPipes": 7.408,
-    "avgCrosses": 0.06,
-    "endRate": 0,
-    "avgDiscards": 4.692,
-    "fastRate": 0.288
-  },
-  {
-    "config": {
-      "levelId": 1,
-      "bot": "greedy",
-      "reactionMs": 1000,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.408,
-    "avgScore": 304.8,
-    "medScore": 100,
-    "avgPipes": 7.8,
-    "avgCrosses": 0.172,
-    "endRate": 0,
-    "avgDiscards": 4.196,
-    "fastRate": 0.352
-  },
-  {
-    "config": {
-      "levelId": 1,
-      "bot": "looper",
-      "reactionMs": 200,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.388,
-    "avgScore": -129.8,
-    "medScore": -150,
-    "avgPipes": 7.136,
-    "avgCrosses": 0.056,
-    "endRate": 0,
-    "avgDiscards": 5.316,
-    "fastRate": 0.264
+    "avgDiscards": 4.015,
+    "fastRate": 0.5
   },
   {
     "config": {
@@ -125,15 +125,15 @@
       "reactionMs": 200,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.32,
-    "avgScore": -111,
-    "medScore": -200,
-    "avgPipes": 6.6,
-    "avgCrosses": 0.08,
+    "games": 200,
+    "winRate": 0.41,
+    "avgScore": 214.5,
+    "medScore": 50,
+    "avgPipes": 7.81,
+    "avgCrosses": 0.125,
     "endRate": 0,
-    "avgDiscards": 4.42,
-    "fastRate": 0.24
+    "avgDiscards": 3.25,
+    "fastRate": 0.3
   },
   {
     "config": {
@@ -142,15 +142,15 @@
       "reactionMs": 500,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.384,
-    "avgScore": -127,
-    "medScore": -150,
-    "avgPipes": 7.108,
-    "avgCrosses": 0.068,
+    "games": 200,
+    "winRate": 0.64,
+    "avgScore": 388,
+    "medScore": 150,
+    "avgPipes": 9.315,
+    "avgCrosses": 0.28,
     "endRate": 0,
-    "avgDiscards": 5.34,
-    "fastRate": 0.292
+    "avgDiscards": 4.385,
+    "fastRate": 0.52
   },
   {
     "config": {
@@ -159,15 +159,15 @@
       "reactionMs": 500,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.348,
-    "avgScore": -59.8,
-    "medScore": -100,
-    "avgPipes": 7.096,
-    "avgCrosses": 0.076,
+    "games": 200,
+    "winRate": 0.38,
+    "avgScore": 237.25,
+    "medScore": 0,
+    "avgPipes": 7.72,
+    "avgCrosses": 0.215,
     "endRate": 0,
-    "avgDiscards": 4.404,
-    "fastRate": 0.264
+    "avgDiscards": 3.595,
+    "fastRate": 0.315
   },
   {
     "config": {
@@ -176,15 +176,15 @@
       "reactionMs": 1000,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.42,
-    "avgScore": -114.8,
-    "medScore": -150,
-    "avgPipes": 7.452,
-    "avgCrosses": 0.08,
+    "games": 200,
+    "winRate": 0.58,
+    "avgScore": 475.5,
+    "medScore": 200,
+    "avgPipes": 9.73,
+    "avgCrosses": 0.325,
     "endRate": 0,
-    "avgDiscards": 5.568,
-    "fastRate": 0.352
+    "avgDiscards": 4.56,
+    "fastRate": 0.49
   },
   {
     "config": {
@@ -193,15 +193,15 @@
       "reactionMs": 1000,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.344,
-    "avgScore": -52,
-    "medScore": -150,
-    "avgPipes": 7.252,
-    "avgCrosses": 0.092,
+    "games": 200,
+    "winRate": 0.37,
+    "avgScore": 198.25,
+    "medScore": 0,
+    "avgPipes": 7.64,
+    "avgCrosses": 0.135,
     "endRate": 0,
-    "avgDiscards": 4.484,
-    "fastRate": 0.268
+    "avgDiscards": 3.085,
+    "fastRate": 0.315
   },
   {
     "config": {
@@ -210,15 +210,15 @@
       "reactionMs": 200,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.128,
-    "avgScore": -34,
-    "medScore": -50,
-    "avgPipes": 5.744,
-    "avgCrosses": 0.028,
+    "games": 200,
+    "winRate": 0.135,
+    "avgScore": 112,
+    "medScore": 50,
+    "avgPipes": 5.77,
+    "avgCrosses": 0.05,
     "endRate": 0,
-    "avgDiscards": 3.916,
-    "fastRate": 0.104
+    "avgDiscards": 2.525,
+    "fastRate": 0.09
   },
   {
     "config": {
@@ -227,15 +227,15 @@
       "reactionMs": 200,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.128,
-    "avgScore": 129.6,
+    "games": 200,
+    "winRate": 0.22,
+    "avgScore": 255,
     "medScore": 100,
-    "avgPipes": 5.412,
-    "avgCrosses": 0.096,
+    "avgPipes": 6.29,
+    "avgCrosses": 0.195,
     "endRate": 0,
-    "avgDiscards": 2.436,
-    "fastRate": 0.088
+    "avgDiscards": 2.49,
+    "fastRate": 0.185
   },
   {
     "config": {
@@ -244,15 +244,15 @@
       "reactionMs": 500,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.112,
-    "avgScore": -26.4,
-    "medScore": 0,
-    "avgPipes": 5.256,
-    "avgCrosses": 0.032,
+    "games": 200,
+    "winRate": 0.15,
+    "avgScore": 135,
+    "medScore": 50,
+    "avgPipes": 5.905,
+    "avgCrosses": 0.085,
     "endRate": 0,
-    "avgDiscards": 3.58,
-    "fastRate": 0.08
+    "avgDiscards": 2.64,
+    "fastRate": 0.13
   },
   {
     "config": {
@@ -261,15 +261,15 @@
       "reactionMs": 500,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.136,
-    "avgScore": 91.6,
-    "medScore": 100,
-    "avgPipes": 5.412,
-    "avgCrosses": 0.076,
+    "games": 200,
+    "winRate": 0.23,
+    "avgScore": 345,
+    "medScore": 150,
+    "avgPipes": 6.69,
+    "avgCrosses": 0.25,
     "endRate": 0,
-    "avgDiscards": 2.668,
-    "fastRate": 0.124
+    "avgDiscards": 2.57,
+    "fastRate": 0.205
   },
   {
     "config": {
@@ -278,15 +278,15 @@
       "reactionMs": 1000,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.116,
-    "avgScore": -22,
-    "medScore": 0,
-    "avgPipes": 5.452,
-    "avgCrosses": 0.032,
+    "games": 200,
+    "winRate": 0.17,
+    "avgScore": 129.25,
+    "medScore": 50,
+    "avgPipes": 6.395,
+    "avgCrosses": 0.075,
     "endRate": 0,
-    "avgDiscards": 3.556,
-    "fastRate": 0.072
+    "avgDiscards": 2.97,
+    "fastRate": 0.125
   },
   {
     "config": {
@@ -295,117 +295,117 @@
       "reactionMs": 1000,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.128,
-    "avgScore": 121,
+    "games": 200,
+    "winRate": 0.285,
+    "avgScore": 322.75,
     "medScore": 100,
-    "avgPipes": 5.496,
-    "avgCrosses": 0.064,
+    "avgPipes": 6.755,
+    "avgCrosses": 0.2,
     "endRate": 0,
-    "avgDiscards": 2.392,
+    "avgDiscards": 2.575,
+    "fastRate": 0.215
+  },
+  {
+    "config": {
+      "levelId": 5,
+      "bot": "looper",
+      "reactionMs": 200,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.21,
+    "avgScore": 113,
+    "medScore": 0,
+    "avgPipes": 6.255,
+    "avgCrosses": 0.16,
+    "endRate": 0,
+    "avgDiscards": 2.94,
+    "fastRate": 0.17
+  },
+  {
+    "config": {
+      "levelId": 5,
+      "bot": "looper",
+      "reactionMs": 200,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.14,
+    "avgScore": 94.5,
+    "medScore": 100,
+    "avgPipes": 5.77,
+    "avgCrosses": 0.105,
+    "endRate": 0,
+    "avgDiscards": 2.115,
+    "fastRate": 0.105
+  },
+  {
+    "config": {
+      "levelId": 5,
+      "bot": "looper",
+      "reactionMs": 500,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.215,
+    "avgScore": 131.5,
+    "medScore": 0,
+    "avgPipes": 6.23,
+    "avgCrosses": 0.185,
+    "endRate": 0,
+    "avgDiscards": 2.98,
+    "fastRate": 0.175
+  },
+  {
+    "config": {
+      "levelId": 5,
+      "bot": "looper",
+      "reactionMs": 500,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.115,
+    "avgScore": 42.75,
+    "medScore": 50,
+    "avgPipes": 5.485,
+    "avgCrosses": 0.055,
+    "endRate": 0,
+    "avgDiscards": 2.14,
+    "fastRate": 0.085
+  },
+  {
+    "config": {
+      "levelId": 5,
+      "bot": "looper",
+      "reactionMs": 1000,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.21,
+    "avgScore": 139.5,
+    "medScore": 0,
+    "avgPipes": 6.445,
+    "avgCrosses": 0.205,
+    "endRate": 0,
+    "avgDiscards": 3.135,
+    "fastRate": 0.17
+  },
+  {
+    "config": {
+      "levelId": 5,
+      "bot": "looper",
+      "reactionMs": 1000,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.155,
+    "avgScore": 73.5,
+    "medScore": 50,
+    "avgPipes": 5.76,
+    "avgCrosses": 0.085,
+    "endRate": 0,
+    "avgDiscards": 2.26,
     "fastRate": 0.1
-  },
-  {
-    "config": {
-      "levelId": 5,
-      "bot": "looper",
-      "reactionMs": 200,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.132,
-    "avgScore": -153.2,
-    "medScore": -150,
-    "avgPipes": 5.304,
-    "avgCrosses": 0.072,
-    "endRate": 0,
-    "avgDiscards": 4.056,
-    "fastRate": 0.096
-  },
-  {
-    "config": {
-      "levelId": 5,
-      "bot": "looper",
-      "reactionMs": 200,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.092,
-    "avgScore": -74.4,
-    "medScore": 0,
-    "avgPipes": 4.8,
-    "avgCrosses": 0.028,
-    "endRate": 0,
-    "avgDiscards": 2.712,
-    "fastRate": 0.068
-  },
-  {
-    "config": {
-      "levelId": 5,
-      "bot": "looper",
-      "reactionMs": 500,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.092,
-    "avgScore": -149.4,
-    "medScore": -100,
-    "avgPipes": 5.184,
-    "avgCrosses": 0.076,
-    "endRate": 0,
-    "avgDiscards": 4.028,
-    "fastRate": 0.064
-  },
-  {
-    "config": {
-      "levelId": 5,
-      "bot": "looper",
-      "reactionMs": 500,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.068,
-    "avgScore": -28.6,
-    "medScore": 0,
-    "avgPipes": 4.932,
-    "avgCrosses": 0.028,
-    "endRate": 0,
-    "avgDiscards": 2.4,
-    "fastRate": 0.056
-  },
-  {
-    "config": {
-      "levelId": 5,
-      "bot": "looper",
-      "reactionMs": 1000,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.12,
-    "avgScore": -190.8,
-    "medScore": -150,
-    "avgPipes": 5.532,
-    "avgCrosses": 0.06,
-    "endRate": 0,
-    "avgDiscards": 4.224,
-    "fastRate": 0.092
-  },
-  {
-    "config": {
-      "levelId": 5,
-      "bot": "looper",
-      "reactionMs": 1000,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.072,
-    "avgScore": -50,
-    "medScore": 0,
-    "avgPipes": 4.892,
-    "avgCrosses": 0.052,
-    "endRate": 0,
-    "avgDiscards": 2.6,
-    "fastRate": 0.052
   },
   {
     "config": {
@@ -414,405 +414,405 @@
       "reactionMs": 200,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.032,
-    "avgScore": -79.6,
-    "medScore": 0,
-    "avgPipes": 5.94,
-    "avgCrosses": 0.044,
+    "games": 200,
+    "winRate": 0.04,
+    "avgScore": 90.75,
+    "medScore": 100,
+    "avgPipes": 6.305,
+    "avgCrosses": 0.065,
     "endRate": 0,
-    "avgDiscards": 4.12,
+    "avgDiscards": 2.68,
+    "fastRate": 0.03
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.065,
+    "avgScore": 165,
+    "medScore": 100,
+    "avgPipes": 6.13,
+    "avgCrosses": 0.165,
+    "endRate": 0,
+    "avgDiscards": 2.635,
+    "fastRate": 0.055
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.03,
+    "avgScore": 90.25,
+    "medScore": 50,
+    "avgPipes": 6.22,
+    "avgCrosses": 0.095,
+    "endRate": 0,
+    "avgDiscards": 2.775,
     "fastRate": 0.02
   },
   {
     "config": {
       "levelId": 13,
       "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.045,
+    "avgScore": 151.25,
+    "medScore": 100,
+    "avgPipes": 5.715,
+    "avgCrosses": 0.155,
+    "endRate": 0,
+    "avgDiscards": 2.35,
+    "fastRate": 0.035
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "greedy",
+      "reactionMs": 1000,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.035,
+    "avgScore": 125.25,
+    "medScore": 50,
+    "avgPipes": 6.265,
+    "avgCrosses": 0.125,
+    "endRate": 0,
+    "avgDiscards": 2.66,
+    "fastRate": 0.035
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "greedy",
+      "reactionMs": 1000,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.06,
+    "avgScore": 191.75,
+    "medScore": 100,
+    "avgPipes": 6.14,
+    "avgCrosses": 0.22,
+    "endRate": 0,
+    "avgDiscards": 2.555,
+    "fastRate": 0.045
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "looper",
+      "reactionMs": 200,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.06,
+    "avgScore": 24.5,
+    "medScore": -50,
+    "avgPipes": 6.375,
+    "avgCrosses": 0.175,
+    "endRate": 0,
+    "avgDiscards": 3.155,
+    "fastRate": 0.045
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "looper",
       "reactionMs": 200,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.048,
-    "avgScore": 12.2,
-    "medScore": 50,
-    "avgPipes": 5.544,
-    "avgCrosses": 0.088,
+    "games": 200,
+    "winRate": 0.04,
+    "avgScore": -12.25,
+    "medScore": 0,
+    "avgPipes": 5.75,
+    "avgCrosses": 0.12,
     "endRate": 0,
-    "avgDiscards": 3.228,
-    "fastRate": 0.032
+    "avgDiscards": 2.815,
+    "fastRate": 0.03
   },
   {
     "config": {
       "levelId": 13,
+      "bot": "looper",
+      "reactionMs": 500,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.035,
+    "avgScore": 1.5,
+    "medScore": 0,
+    "avgPipes": 6.4,
+    "avgCrosses": 0.17,
+    "endRate": 0,
+    "avgDiscards": 3.215,
+    "fastRate": 0.025
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "looper",
+      "reactionMs": 500,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.055,
+    "avgScore": 7,
+    "medScore": 0,
+    "avgPipes": 5.195,
+    "avgCrosses": 0.11,
+    "endRate": 0,
+    "avgDiscards": 2.475,
+    "fastRate": 0.04
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "looper",
+      "reactionMs": 1000,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.095,
+    "avgScore": 26.75,
+    "medScore": 0,
+    "avgPipes": 7.355,
+    "avgCrosses": 0.215,
+    "endRate": 0,
+    "avgDiscards": 3.805,
+    "fastRate": 0.085
+  },
+  {
+    "config": {
+      "levelId": 13,
+      "bot": "looper",
+      "reactionMs": 1000,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.03,
+    "avgScore": -0.75,
+    "medScore": 0,
+    "avgPipes": 5.29,
+    "avgCrosses": 0.09,
+    "endRate": 0,
+    "avgDiscards": 2.565,
+    "fastRate": 0.03
+  },
+  {
+    "config": {
+      "levelId": 21,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 107.25,
+    "medScore": 100,
+    "avgPipes": 6.385,
+    "avgCrosses": 0.085,
+    "endRate": 0.005,
+    "avgDiscards": 2.615,
+    "fastRate": 0.005
+  },
+  {
+    "config": {
+      "levelId": 21,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 214.75,
+    "medScore": 100,
+    "avgPipes": 6.315,
+    "avgCrosses": 0.235,
+    "endRate": 0.025,
+    "avgDiscards": 2.45,
+    "fastRate": 0.01
+  },
+  {
+    "config": {
+      "levelId": 21,
       "bot": "greedy",
       "reactionMs": 500,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.048,
-    "avgScore": -32.8,
-    "medScore": -50,
-    "avgPipes": 6.012,
-    "avgCrosses": 0.064,
-    "endRate": 0,
-    "avgDiscards": 3.916,
-    "fastRate": 0.044
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 106,
+    "medScore": 100,
+    "avgPipes": 6.55,
+    "avgCrosses": 0.075,
+    "endRate": 0.01,
+    "avgDiscards": 2.685,
+    "fastRate": 0
   },
   {
     "config": {
-      "levelId": 13,
+      "levelId": 21,
       "bot": "greedy",
       "reactionMs": 500,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.048,
-    "avgScore": 36.8,
+    "games": 200,
+    "winRate": 0.005,
+    "avgScore": 168.75,
     "medScore": 100,
-    "avgPipes": 5.748,
-    "avgCrosses": 0.1,
-    "endRate": 0,
-    "avgDiscards": 3.132,
-    "fastRate": 0.036
+    "avgPipes": 6.115,
+    "avgCrosses": 0.185,
+    "endRate": 0.02,
+    "avgDiscards": 2.575,
+    "fastRate": 0.01
   },
   {
     "config": {
-      "levelId": 13,
+      "levelId": 21,
       "bot": "greedy",
       "reactionMs": 1000,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.036,
-    "avgScore": -63.4,
-    "medScore": -50,
-    "avgPipes": 5.416,
-    "avgCrosses": 0.056,
-    "endRate": 0,
-    "avgDiscards": 3.792,
-    "fastRate": 0.028
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 108,
+    "medScore": 100,
+    "avgPipes": 6.41,
+    "avgCrosses": 0.08,
+    "endRate": 0.02,
+    "avgDiscards": 2.715,
+    "fastRate": 0
   },
   {
     "config": {
-      "levelId": 13,
+      "levelId": 21,
       "bot": "greedy",
       "reactionMs": 1000,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.056,
-    "avgScore": 53.4,
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 168.75,
     "medScore": 100,
-    "avgPipes": 5.888,
+    "avgPipes": 6.175,
+    "avgCrosses": 0.21,
+    "endRate": 0.01,
+    "avgDiscards": 2.545,
+    "fastRate": 0
+  },
+  {
+    "config": {
+      "levelId": 21,
+      "bot": "looper",
+      "reactionMs": 200,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 55.75,
+    "medScore": 0,
+    "avgPipes": 6.99,
+    "avgCrosses": 0.18,
+    "endRate": 0.025,
+    "avgDiscards": 3.22,
+    "fastRate": 0.005
+  },
+  {
+    "config": {
+      "levelId": 21,
+      "bot": "looper",
+      "reactionMs": 200,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 25.5,
+    "medScore": 0,
+    "avgPipes": 5.505,
+    "avgCrosses": 0.135,
+    "endRate": 0.02,
+    "avgDiscards": 2.64,
+    "fastRate": 0.005
+  },
+  {
+    "config": {
+      "levelId": 21,
+      "bot": "looper",
+      "reactionMs": 500,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 6.5,
+    "medScore": 0,
+    "avgPipes": 6.87,
+    "avgCrosses": 0.19,
+    "endRate": 0.01,
+    "avgDiscards": 3.435,
+    "fastRate": 0.005
+  },
+  {
+    "config": {
+      "levelId": 21,
+      "bot": "looper",
+      "reactionMs": 500,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": -17.75,
+    "medScore": 0,
+    "avgPipes": 5.26,
+    "avgCrosses": 0.09,
+    "endRate": 0.015,
+    "avgDiscards": 2.515,
+    "fastRate": 0
+  },
+  {
+    "config": {
+      "levelId": 21,
+      "bot": "looper",
+      "reactionMs": 1000,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": -15.75,
+    "medScore": 0,
+    "avgPipes": 6.11,
     "avgCrosses": 0.14,
-    "endRate": 0,
-    "avgDiscards": 3.344,
-    "fastRate": 0.044
-  },
-  {
-    "config": {
-      "levelId": 13,
-      "bot": "looper",
-      "reactionMs": 200,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.028,
-    "avgScore": -187.4,
-    "medScore": -100,
-    "avgPipes": 4.976,
-    "avgCrosses": 0.044,
-    "endRate": 0,
-    "avgDiscards": 3.808,
-    "fastRate": 0.024
-  },
-  {
-    "config": {
-      "levelId": 13,
-      "bot": "looper",
-      "reactionMs": 200,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.016,
-    "avgScore": -130.4,
-    "medScore": -100,
-    "avgPipes": 5.004,
-    "avgCrosses": 0.072,
-    "endRate": 0,
-    "avgDiscards": 3.188,
-    "fastRate": 0.012
-  },
-  {
-    "config": {
-      "levelId": 13,
-      "bot": "looper",
-      "reactionMs": 500,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.048,
-    "avgScore": -207.6,
-    "medScore": -200,
-    "avgPipes": 5.376,
-    "avgCrosses": 0.052,
-    "endRate": 0,
-    "avgDiscards": 4.192,
-    "fastRate": 0.028
-  },
-  {
-    "config": {
-      "levelId": 13,
-      "bot": "looper",
-      "reactionMs": 500,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.044,
-    "avgScore": -153.4,
-    "medScore": -100,
-    "avgPipes": 5.256,
-    "avgCrosses": 0.052,
-    "endRate": 0,
-    "avgDiscards": 3.476,
-    "fastRate": 0.036
-  },
-  {
-    "config": {
-      "levelId": 13,
-      "bot": "looper",
-      "reactionMs": 1000,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.012,
-    "avgScore": -193.2,
-    "medScore": -150,
-    "avgPipes": 4.972,
-    "avgCrosses": 0.048,
-    "endRate": 0,
-    "avgDiscards": 3.952,
-    "fastRate": 0.008
-  },
-  {
-    "config": {
-      "levelId": 13,
-      "bot": "looper",
-      "reactionMs": 1000,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.02,
-    "avgScore": -130.4,
-    "medScore": -100,
-    "avgPipes": 4.908,
-    "avgCrosses": 0.08,
-    "endRate": 0,
-    "avgDiscards": 3.232,
-    "fastRate": 0.008
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "greedy",
-      "reactionMs": 200,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -84.2,
-    "medScore": -50,
-    "avgPipes": 4.956,
-    "avgCrosses": 0.028,
-    "endRate": 0,
-    "avgDiscards": 3.46,
+    "endRate": 0.005,
+    "avgDiscards": 3.12,
     "fastRate": 0
   },
   {
     "config": {
       "levelId": 21,
-      "bot": "greedy",
-      "reactionMs": 200,
+      "bot": "looper",
+      "reactionMs": 1000,
       "easy": true
     },
-    "games": 250,
+    "games": 200,
     "winRate": 0,
-    "avgScore": 35.4,
-    "medScore": 100,
-    "avgPipes": 5.72,
-    "avgCrosses": 0.096,
-    "endRate": 0.004,
-    "avgDiscards": 3.024,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "greedy",
-      "reactionMs": 500,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -20.6,
+    "avgScore": -16.75,
     "medScore": 0,
-    "avgPipes": 5.8,
-    "avgCrosses": 0.032,
-    "endRate": 0.028,
-    "avgDiscards": 3.536,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "greedy",
-      "reactionMs": 500,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": 34,
-    "medScore": 100,
-    "avgPipes": 5.82,
-    "avgCrosses": 0.112,
-    "endRate": 0,
-    "avgDiscards": 3.164,
-    "fastRate": 0.012
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "greedy",
-      "reactionMs": 1000,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -77.6,
-    "medScore": -50,
-    "avgPipes": 5.52,
-    "avgCrosses": 0.008,
-    "endRate": 0.008,
-    "avgDiscards": 3.66,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "greedy",
-      "reactionMs": 1000,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -24.8,
-    "medScore": 0,
-    "avgPipes": 5.16,
-    "avgCrosses": 0.06,
-    "endRate": 0,
-    "avgDiscards": 3.128,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "looper",
-      "reactionMs": 200,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -186.8,
-    "medScore": -100,
-    "avgPipes": 4.972,
-    "avgCrosses": 0.04,
-    "endRate": 0.012,
-    "avgDiscards": 3.904,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "looper",
-      "reactionMs": 200,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -170.2,
-    "medScore": -100,
-    "avgPipes": 4.892,
-    "avgCrosses": 0.052,
-    "endRate": 0.004,
-    "avgDiscards": 3.464,
-    "fastRate": 0.004
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "looper",
-      "reactionMs": 500,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -183,
-    "medScore": -100,
-    "avgPipes": 5.136,
-    "avgCrosses": 0.036,
-    "endRate": 0.012,
-    "avgDiscards": 3.82,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "looper",
-      "reactionMs": 500,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -148.6,
-    "medScore": -100,
-    "avgPipes": 4.944,
-    "avgCrosses": 0.044,
-    "endRate": 0.004,
-    "avgDiscards": 3.208,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "looper",
-      "reactionMs": 1000,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -153.6,
-    "medScore": -100,
-    "avgPipes": 4.776,
-    "avgCrosses": 0.056,
-    "endRate": 0.008,
-    "avgDiscards": 3.612,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 21,
-      "bot": "looper",
-      "reactionMs": 1000,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -121.8,
-    "medScore": -100,
-    "avgPipes": 4.676,
-    "avgCrosses": 0.044,
-    "endRate": 0,
-    "avgDiscards": 2.94,
+    "avgPipes": 4.82,
+    "avgCrosses": 0.09,
+    "endRate": 0.005,
+    "avgDiscards": 2.305,
     "fastRate": 0
   },
   {
@@ -822,15 +822,15 @@
       "reactionMs": 200,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.1,
-    "avgScore": -750.4,
-    "medScore": -1000,
-    "avgPipes": 14.652,
+    "games": 200,
+    "winRate": 0.18,
+    "avgScore": -188.25,
+    "medScore": -550,
+    "avgPipes": 17.585,
     "avgCrosses": 0,
-    "endRate": 0.1,
-    "avgDiscards": 10.752,
-    "fastRate": 0.1
+    "endRate": 0.18,
+    "avgDiscards": 9.71,
+    "fastRate": 0.18
   },
   {
     "config": {
@@ -839,15 +839,15 @@
       "reactionMs": 200,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.416,
-    "avgScore": 1152.8,
-    "medScore": 550,
-    "avgPipes": 23.28,
+    "games": 200,
+    "winRate": 0.47,
+    "avgScore": 1425,
+    "medScore": 750,
+    "avgPipes": 24.14,
     "avgCrosses": 0,
-    "endRate": 0.416,
-    "avgDiscards": 10.848,
-    "fastRate": 0.416
+    "endRate": 0.47,
+    "avgDiscards": 10.19,
+    "fastRate": 0.47
   },
   {
     "config": {
@@ -856,15 +856,15 @@
       "reactionMs": 500,
       "easy": false
     },
-    "games": 250,
-    "winRate": 0.1,
-    "avgScore": -960.6,
-    "medScore": -1200,
-    "avgPipes": 13.04,
+    "games": 200,
+    "winRate": 0.19,
+    "avgScore": -273.5,
+    "medScore": -700,
+    "avgPipes": 17.33,
     "avgCrosses": 0,
-    "endRate": 0.1,
-    "avgDiscards": 10.312,
-    "fastRate": 0.1
+    "endRate": 0.19,
+    "avgDiscards": 9.48,
+    "fastRate": 0.19
   },
   {
     "config": {
@@ -873,15 +873,15 @@
       "reactionMs": 500,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0.42,
-    "avgScore": 860.2,
-    "medScore": 450,
-    "avgPipes": 22.896,
+    "games": 200,
+    "winRate": 0.57,
+    "avgScore": 1529,
+    "medScore": 1950,
+    "avgPipes": 25.075,
     "avgCrosses": 0,
-    "endRate": 0.42,
-    "avgDiscards": 11.18,
-    "fastRate": 0.42
+    "endRate": 0.57,
+    "avgDiscards": 10.38,
+    "fastRate": 0.57
   },
   {
     "config": {
@@ -890,14 +890,14 @@
       "reactionMs": 1000,
       "easy": false
     },
-    "games": 250,
+    "games": 200,
     "winRate": 0,
-    "avgScore": -838.8,
-    "medScore": -900,
-    "avgPipes": 4,
+    "avgScore": -535.5,
+    "medScore": -600,
+    "avgPipes": 8.19,
     "avgCrosses": 0,
     "endRate": 0,
-    "avgDiscards": 2.724,
+    "avgDiscards": 2.97,
     "fastRate": 0
   },
   {
@@ -907,15 +907,15 @@
       "reactionMs": 1000,
       "easy": true
     },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -800.8,
-    "medScore": -850,
-    "avgPipes": 4.432,
+    "games": 200,
+    "winRate": 0.005,
+    "avgScore": -483.75,
+    "medScore": -550,
+    "avgPipes": 8.815,
     "avgCrosses": 0,
-    "endRate": 0,
-    "avgDiscards": 3.428,
-    "fastRate": 0
+    "endRate": 0.005,
+    "avgDiscards": 3.715,
+    "fastRate": 0.005
   },
   {
     "config": {
@@ -924,31 +924,31 @@
       "reactionMs": 200,
       "easy": false
     },
-    "games": 250,
+    "games": 200,
     "winRate": 0,
-    "avgScore": -38,
-    "medScore": -50,
-    "avgPipes": 5.464,
-    "avgCrosses": 0.048,
-    "endRate": 0.016,
-    "avgDiscards": 3.612,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "greedy",
-      "reactionMs": 200,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": 75.8,
+    "avgScore": 73,
     "medScore": 50,
-    "avgPipes": 6.232,
-    "avgCrosses": 0.108,
+    "avgPipes": 5.87,
+    "avgCrosses": 0.075,
     "endRate": 0,
-    "avgDiscards": 3.096,
+    "avgDiscards": 2.58,
+    "fastRate": 0
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 200.5,
+    "medScore": 100,
+    "avgPipes": 6.375,
+    "avgCrosses": 0.225,
+    "endRate": 0,
+    "avgDiscards": 2.33,
     "fastRate": 0
   },
   {
@@ -958,65 +958,65 @@
       "reactionMs": 500,
       "easy": false
     },
-    "games": 250,
+    "games": 200,
     "winRate": 0,
-    "avgScore": -35.6,
-    "medScore": 0,
-    "avgPipes": 5.28,
-    "avgCrosses": 0.044,
-    "endRate": 0.008,
-    "avgDiscards": 3.368,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "greedy",
-      "reactionMs": 500,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": 41.2,
-    "medScore": 0,
-    "avgPipes": 5.76,
-    "avgCrosses": 0.08,
-    "endRate": 0.008,
-    "avgDiscards": 3.076,
-    "fastRate": 0.004
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "greedy",
-      "reactionMs": 1000,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -62.2,
-    "medScore": -50,
-    "avgPipes": 4.848,
-    "avgCrosses": 0.032,
-    "endRate": 0,
-    "avgDiscards": 3.368,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "greedy",
-      "reactionMs": 1000,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": 62.4,
+    "avgScore": 120.75,
     "medScore": 50,
-    "avgPipes": 5.552,
-    "avgCrosses": 0.056,
+    "avgPipes": 6.665,
+    "avgCrosses": 0.115,
+    "endRate": 0.005,
+    "avgDiscards": 2.845,
+    "fastRate": 0.005
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 152.5,
+    "medScore": 100,
+    "avgPipes": 6.05,
+    "avgCrosses": 0.165,
     "endRate": 0,
-    "avgDiscards": 2.576,
+    "avgDiscards": 2.46,
+    "fastRate": 0
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "greedy",
+      "reactionMs": 1000,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 127.75,
+    "medScore": 50,
+    "avgPipes": 6.435,
+    "avgCrosses": 0.105,
+    "endRate": 0,
+    "avgDiscards": 2.645,
+    "fastRate": 0
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "greedy",
+      "reactionMs": 1000,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 161.75,
+    "medScore": 150,
+    "avgPipes": 6.01,
+    "avgCrosses": 0.105,
+    "endRate": 0.005,
+    "avgDiscards": 2.1,
     "fastRate": 0
   },
   {
@@ -1026,15 +1026,15 @@
       "reactionMs": 200,
       "easy": false
     },
-    "games": 250,
+    "games": 200,
     "winRate": 0,
-    "avgScore": -142,
-    "medScore": -100,
-    "avgPipes": 5.724,
-    "avgCrosses": 0.076,
-    "endRate": 0.008,
-    "avgDiscards": 4.068,
-    "fastRate": 0.004
+    "avgScore": 30.25,
+    "medScore": 0,
+    "avgPipes": 5.9,
+    "avgCrosses": 0.155,
+    "endRate": 0,
+    "avgDiscards": 2.865,
+    "fastRate": 0
   },
   {
     "config": {
@@ -1043,65 +1043,65 @@
       "reactionMs": 200,
       "easy": true
     },
-    "games": 250,
+    "games": 200,
     "winRate": 0,
-    "avgScore": -97.4,
-    "medScore": -50,
-    "avgPipes": 5.264,
-    "avgCrosses": 0.06,
+    "avgScore": 68.25,
+    "medScore": 50,
+    "avgPipes": 6.025,
+    "avgCrosses": 0.11,
+    "endRate": 0.01,
+    "avgDiscards": 2.355,
+    "fastRate": 0.005
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "looper",
+      "reactionMs": 500,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 61.75,
+    "medScore": 0,
+    "avgPipes": 6.185,
+    "avgCrosses": 0.16,
+    "endRate": 0.005,
+    "avgDiscards": 2.96,
+    "fastRate": 0.005
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "looper",
+      "reactionMs": 500,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 20,
+    "medScore": 50,
+    "avgPipes": 5.875,
+    "avgCrosses": 0.09,
+    "endRate": 0.01,
+    "avgDiscards": 2.42,
+    "fastRate": 0
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "looper",
+      "reactionMs": 1000,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": 77.5,
+    "medScore": 50,
+    "avgPipes": 5.885,
+    "avgCrosses": 0.16,
     "endRate": 0,
-    "avgDiscards": 3.036,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "looper",
-      "reactionMs": 500,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -180,
-    "medScore": -100,
-    "avgPipes": 5.148,
-    "avgCrosses": 0.04,
-    "endRate": 0.008,
-    "avgDiscards": 3.924,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "looper",
-      "reactionMs": 500,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -109,
-    "medScore": -50,
-    "avgPipes": 5.52,
-    "avgCrosses": 0.048,
-    "endRate": 0.004,
-    "avgDiscards": 3.304,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "looper",
-      "reactionMs": 1000,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -124.4,
-    "medScore": -100,
-    "avgPipes": 4.836,
-    "avgCrosses": 0.04,
-    "endRate": 0.004,
-    "avgDiscards": 3.304,
+    "avgDiscards": 2.54,
     "fastRate": 0
   },
   {
@@ -1111,116 +1111,116 @@
       "reactionMs": 1000,
       "easy": true
     },
-    "games": 250,
+    "games": 200,
     "winRate": 0,
-    "avgScore": -88.8,
-    "medScore": -50,
-    "avgPipes": 5.06,
-    "avgCrosses": 0.02,
+    "avgScore": 45.75,
+    "medScore": 50,
+    "avgPipes": 5.59,
+    "avgCrosses": 0.07,
+    "endRate": 0.01,
+    "avgDiscards": 2.045,
+    "fastRate": 0
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.155,
+    "avgScore": 267.25,
+    "medScore": 100,
+    "avgPipes": 21.955,
+    "avgCrosses": 0,
+    "endRate": 0.155,
+    "avgDiscards": 10.28,
+    "fastRate": 0.155
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.375,
+    "avgScore": 1319.75,
+    "medScore": 600,
+    "avgPipes": 25.08,
+    "avgCrosses": 0,
+    "endRate": 0.375,
+    "avgDiscards": 9.85,
+    "fastRate": 0.375
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0.175,
+    "avgScore": 174.25,
+    "medScore": 0,
+    "avgPipes": 20.89,
+    "avgCrosses": 0,
+    "endRate": 0.175,
+    "avgDiscards": 9.525,
+    "fastRate": 0.175
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0.57,
+    "avgScore": 1619,
+    "medScore": 2000,
+    "avgPipes": 26.785,
+    "avgCrosses": 0,
+    "endRate": 0.57,
+    "avgDiscards": 10.55,
+    "fastRate": 0.57
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 1000,
+      "easy": false
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": -254.75,
+    "medScore": -250,
+    "avgPipes": 8.845,
+    "avgCrosses": 0,
+    "endRate": 0,
+    "avgDiscards": 2.4,
+    "fastRate": 0
+  },
+  {
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 1000,
+      "easy": true
+    },
+    "games": 200,
+    "winRate": 0,
+    "avgScore": -446,
+    "medScore": -500,
+    "avgPipes": 6.44,
+    "avgCrosses": 0,
     "endRate": 0,
     "avgDiscards": 2.9,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "route",
-      "reactionMs": 200,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.108,
-    "avgScore": -531.8,
-    "medScore": -850,
-    "avgPipes": 17.22,
-    "avgCrosses": 0,
-    "endRate": 0.108,
-    "avgDiscards": 11.26,
-    "fastRate": 0.108
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "route",
-      "reactionMs": 200,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.36,
-    "avgScore": 1119.2,
-    "medScore": 400,
-    "avgPipes": 25.212,
-    "avgCrosses": 0,
-    "endRate": 0.36,
-    "avgDiscards": 11.684,
-    "fastRate": 0.36
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "route",
-      "reactionMs": 500,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0.072,
-    "avgScore": -953.6,
-    "medScore": -1150,
-    "avgPipes": 12.476,
-    "avgCrosses": 0,
-    "endRate": 0.072,
-    "avgDiscards": 9.388,
-    "fastRate": 0.072
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "route",
-      "reactionMs": 500,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0.424,
-    "avgScore": 1086.6,
-    "medScore": 600,
-    "avgPipes": 25.332,
-    "avgCrosses": 0,
-    "endRate": 0.424,
-    "avgDiscards": 11.204,
-    "fastRate": 0.424
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "route",
-      "reactionMs": 1000,
-      "easy": false
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -708.2,
-    "medScore": -800,
-    "avgPipes": 3.22,
-    "avgCrosses": 0,
-    "endRate": 0,
-    "avgDiscards": 2.288,
-    "fastRate": 0
-  },
-  {
-    "config": {
-      "levelId": 24,
-      "bot": "route",
-      "reactionMs": 1000,
-      "easy": true
-    },
-    "games": 250,
-    "winRate": 0,
-    "avgScore": -634.2,
-    "medScore": -650,
-    "avgPipes": 4.188,
-    "avgCrosses": 0,
-    "endRate": 0,
-    "avgDiscards": 2.86,
     "fastRate": 0
   }
 ]

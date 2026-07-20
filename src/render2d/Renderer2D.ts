@@ -304,6 +304,7 @@ export class Renderer2D {
 
   private easySwitch: { x: number; y: number; w: number; h: number } | null = null;
   private musicSwitch: { x: number; y: number; w: number; h: number } | null = null;
+  private assistSwitch: { x: number; y: number; w: number; h: number } | null = null;
 
   /** Presentation-only queue animation state (slides and crossfades). */
   private dispAnim: Array<{
@@ -358,15 +359,22 @@ export class Renderer2D {
     return this.hitRect(this.musicSwitch, clientX, clientY);
   }
 
+  /** Whether a client-coordinate point hits the assist checkbox. */
+  hitAssistSwitch(clientX: number, clientY: number): boolean {
+    return this.hitRect(this.assistSwitch, clientX, clientY);
+  }
+
   /**
    * Dispenser box(es) in the left column; next piece at the bottom.
    * `predicted` previews what the easy solver currently leans toward in
-   * the still-baking far slots (a prediction, not a promise).
+   * the still-baking far slots (a prediction, not a promise). `assist`
+   * draws the path-finder overlay checkbox under the rack.
    */
   drawDispensers(
     queues: DispenserQueue[],
     easy?: boolean,
     predicted?: readonly PlaceableKind[],
+    assist?: boolean,
   ): void {
     const g = this.g;
     const x = GAP;
@@ -519,11 +527,46 @@ export class Renderer2D {
     } else {
       this.easySwitch = null;
     }
+    // Assist checkbox: toggles the path-finder overlay (tutorial-style
+    // aid, available in easy AND normal queue modes). Sits under the
+    // rack — skipped when the racks fill the column (expert's two
+    // dispensers), where the G key remains the toggle.
+    if (assist !== undefined && y + 16 <= this.bufH - 2) {
+      const tw = 64;
+      const tx = x + (LEFT_W - tw) / 2;
+      const ty = y;
+      g.fillStyle = PAL.black;
+      g.fillRect(tx - 2, ty - 2, tw + 4, 16);
+      g.fillStyle = assist ? '#12240f' : '#181c20';
+      g.fillRect(tx, ty, tw, 12);
+      g.strokeStyle = assist ? PAL.flooz : '#4c5258';
+      g.lineWidth = 1;
+      g.strokeRect(tx + 0.5, ty + 0.5, tw - 1, 11);
+      // checkbox square
+      g.strokeStyle = assist ? PAL.floozHi : '#8a949e';
+      g.strokeRect(tx + 3.5, ty + 2.5, 7, 7);
+      if (assist) {
+        g.strokeStyle = PAL.floozHi;
+        g.beginPath();
+        g.moveTo(tx + 5, ty + 6);
+        g.lineTo(tx + 7, ty + 8);
+        g.lineTo(tx + 12, ty + 2);
+        g.stroke();
+      }
+      g.font = `bold 9px 'Courier New', monospace`;
+      g.textBaseline = 'top';
+      g.fillStyle = assist ? PAL.floozHi : '#8a949e';
+      g.fillText('ASSIST', tx + 14, ty + 2);
+      this.assistSwitch = { x: tx - 2, y: ty - 2, w: tw + 4, h: 16 };
+      y += 18;
+    } else {
+      this.assistSwitch = null;
+    }
     // Mascot stands in the leftover space BELOW the dispenser box so he
     // never covers the next-piece slot.
     if (queues.length === 1) {
       const h = this.bufH - y - 4;
-      if (h >= 40) {
+      if (h >= 26) {
         drawMascot(g, x + Math.round((LEFT_W - h * 0.63) / 2), y, h);
       }
     }

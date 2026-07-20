@@ -74,13 +74,20 @@ export class DispenserQueue {
   }
 
   /**
-   * Re-roll every slot at or above `fromIdx` against current bias.
-   * Easy mode calls this after each placement so the FAR queue reacts
-   * to the board as it is now, while the near slots stay stable for
+   * Re-roll slots at or above `fromIdx` against current bias. Easy
+   * mode calls this after each placement so the FAR queue reacts to
+   * the board as it is now, while the near slots stay stable for
    * player planning.
+   *
+   * `keep` makes the refresh sticky: a slot whose piece the caller
+   * still wants is never re-rolled away. Without it, a needed piece
+   * sitting in the far queue gets thrashed out — and duplicate damping
+   * makes re-rolling that same kind actively UNLIKELY, since its own
+   * visible copy damps its weight during the re-roll.
    */
-  refreshTail(fromIdx: number): void {
+  refreshTail(fromIdx: number, keep?: (kind: PlaceableKind) => boolean): void {
     for (let i = Math.max(0, fromIdx); i < this.items.length; i++) {
+      if (keep?.(this.items[i]!)) continue;
       this.items[i] = this.roll();
     }
   }

@@ -20,6 +20,14 @@ import {
   RoundResult,
 } from './types';
 
+/**
+ * Sticky-refresh threshold: a queue slot survives the far-queue refresh
+ * if its kind still scores at least this under the current bias. Useful
+ * pieces score 8/16 (down to ~3 after duplicate + discard damping);
+ * non-fitting (0.4) and fit-but-doomed (1) pieces re-roll.
+ */
+export const STICKY_KEEP_WEIGHT = 2;
+
 /** Delay before a bombed-in replacement piece becomes flow-connectable. */
 export const PLACE_DELAY_MS = 350;
 /** Minimum age of a piece before it may be replaced. */
@@ -325,7 +333,14 @@ export class GameRound {
 
     // Easy mode: the far queue re-decides against the board as it is
     // NOW (including the piece just placed); near slots stay stable.
-    if (this.easyQueue && this.easyRefresh) q.refreshTail(2);
+    // The refresh is STICKY: a slot whose piece still helps the current
+    // gap is kept, never re-rolled away — otherwise each placement
+    // could thrash a still-needed piece out of the far queue while
+    // chasing the next need.
+    if (this.easyQueue && this.easyRefresh) {
+      const w = this.neededWeights();
+      q.refreshTail(2, w ? (k) => w[k] >= STICKY_KEEP_WEIGHT : undefined);
+    }
 
     return [{ type: 'piecePlaced', pos, kind, player, wasReplacement }];
   }

@@ -165,6 +165,36 @@ whose exit runs off the board (or into an obstacle / mismatched / filled
 pipe) is scored as a dead end (weight 1 vs 8–16), so near borders the
 dispenser strongly favors pieces that turn away from the edge.
 
+## 6c. Addendum — sticky refresh (shipped)
+
+Player report: the far-queue refresh could **thrash** — a needed piece
+sitting in a baking slot was re-rolled away by the very refresh meant to
+help, while still needed. Worse, duplicate damping made this *likely*:
+during the re-roll the piece's own visible copy damps its kind ×0.65, so
+the slot that held the needed elbow re-decides with that elbow at reduced
+odds. The fix: the refresh is now **sticky** — a slot whose kind still
+scores as useful for the current gap (weight ≥ 2 under the live bias,
+i.e. any fitting piece with a live continuation, even after damping) is
+never re-rolled; only unhelpful slots re-decide. Heavily-damped kinds
+(4+ visible copies, or discarded kinds near the floor) still cycle out,
+preserving the variety that Experiment A showed matters.
+
+Validation (200 games/cell, all arms include sticky):
+
+| Cell | before (§4b) | with sticky |
+|---|---|---|
+| L1 greedy 200 ms easy | 49.0% | 50.4% |
+| L5 greedy 200/500 ms easy | 17.2 / 21.6% | 23.4 / 22.6% |
+| L21 route 200/500 ms easy | 49.2 / 53.2% | 51.0 / 52.6% |
+| L24 route 500 ms easy | 44.8% | 57.0% (matrix) / 45.2% (refresh arm) |
+
+No cell regressed; obstacle levels and END-goal levels (where one
+specific linking piece is awaited the longest) gained the most. Scores
+rose across the board (L21 route: 1566 vs 1343). A side effect worth
+noting: sticky refresh rescued much of depth-3's deficit (L1 depth3-
+refresh now ≈ depth5), confirming thrash was a real loss mechanism —
+depth 5 remains best for route play and stays the default.
+
 ## 7. Reproducing
 
 ```sh
