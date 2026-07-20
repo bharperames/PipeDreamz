@@ -104,9 +104,15 @@
           <tr><td>Bonus round (every 4th level)</td><td>100 per pipe, no penalties</td></tr>
         </table>
 
-        <div class="menu-note">EASY QUEUE biases the dispenser toward pieces your
-        pipeline needs and eases the flow a little. ASSIST traces the path the
-        flooz will take and ghosts the piece that would prevent the spill.</div>
+        <div class="howto-h">HELPERS</div>
+        <table class="howto-keys">
+          <tr><td><span class="howto-chip">EASY QUEUE</span></td>
+            <td>biases the dispenser toward pieces your pipeline needs and eases
+            the flow a little — toggle it on the dispenser rack</td></tr>
+          <tr><td><span class="howto-chip">&#9745; ASSIST</span></td>
+            <td>traces the path the flooz will take and ghosts the piece that
+            would prevent the spill — toggle it in the HUD, or press G</td></tr>
+        </table>
       </div>
       <div class="menu-list">${this.pipeBtn("BACK",'data-act="back"')}</div>
     `,"panel-howto").querySelector("[data-act=back]").addEventListener("click",()=>{this.sfx.play("menu"),this.showTitle()})}showModeSelect(){let e=!1,t=this.prefEasy;const i=this.menu(`
@@ -183,4 +189,4 @@
     #gallery figure.asset-card canvas { display: block; }
     #gallery figcaption { font-size: 11px; color: #9aa39a; }
   `,document.head.appendChild(e);const t=document.createElement("div");t.id="gallery",document.body.appendChild(t);const i=document.createElement("h1");i.textContent="PIPEDREAMZ ASSET SHEET",t.appendChild(i);const o=document.createElement("div");o.className="sub",o.textContent=`sheets ${_()?"loaded":"MISSING (procedural fallback)"} — every asset is an individual element; right-click any canvas to save it`,t.appendChild(o);const n=[{kind:"H",name:"straight H"},{kind:"V",name:"straight V"},{kind:"NE",name:"elbow NE"},{kind:"NW",name:"elbow NW"},{kind:"SE",name:"elbow SE"},{kind:"SW",name:"elbow SW"},{kind:"X",name:"cross"},{kind:"BONUS",name:"bonus"},{kind:"ONEWAY_N",name:"one-way N"},{kind:"ONEWAY_E",name:"one-way E"},{kind:"ONEWAY_S",name:"one-way S"},{kind:"ONEWAY_W",name:"one-way W"},{kind:"RESERVOIR_H",name:"reservoir H"},{kind:"RESERVOIR_V",name:"reservoir V"},{kind:"START",exit:1,name:"start (E)"},{kind:"START",exit:2,name:"start (S)"},{kind:"END",name:"end"},{kind:"OBSTACLE",name:"obstacle"}],l=ve(t,"PIECES — empty | filled");for(const w of n){const v=Re(1,1,x=>{he(x,0,0),x.drawImage(V(w.kind,w.exit),0,0,a,a)});if(w.kind==="OBSTACLE"){B(l,w.name,v);continue}const T=Re(1,1,x=>{he(x,0,0),x.drawImage(V(w.kind,w.exit),0,0,a,a);const A=w.kind==="X"||w.kind==="BONUS"?[0,1]:[0];for(const G of A)Ye(x,w.kind,G,1,!1,w.exit)});B(l,w.name,v,T)}const r=ve(t,"CONNECTIONS — seams should read water-tight"),d=[{dx:0,dy:0,kind:"START",exit:1},{dx:1,dy:0,kind:"H"},{dx:2,dy:0,kind:"RESERVOIR_H"},{dx:3,dy:0,kind:"H"},{dx:4,dy:0,kind:"ONEWAY_E"},{dx:5,dy:0,kind:"END"}];B(r,"straight run — empty",X(d,!1)),B(r,"straight run — filled",X(d,!0));const c=[{dx:0,dy:0,kind:"SE"},{dx:1,dy:0,kind:"H"},{dx:2,dy:0,kind:"SW",reversed:!0},{dx:2,dy:1,kind:"NE",reversed:!0},{dx:3,dy:1,kind:"H"},{dx:4,dy:1,kind:"NW"},{dx:4,dy:0,kind:"V"}];B(r,"elbow snake — empty",X(c,!1)),B(r,"elbow snake — filled",X(c,!0));const f=[{dx:0,dy:1,kind:"H"},{dx:1,dy:1,kind:"X"},{dx:2,dy:1,kind:"H"},{dx:1,dy:0,kind:"V"},{dx:1,dy:2,kind:"V"}];B(r,"crossover — empty",X(f,!1)),B(r,"crossover — filled",X(f,!0));const u=f.map(w=>({...w,kind:w.kind==="X"?"BONUS":w.kind}));B(r,"crossover — bonus",X(u,!0));const p=ve(t,"BOARD — plates, digits, mascot");if(B(p,"plate variants",Re(4,1,w=>{for(let v=0;v<4;v++)he(w,v*a,0)})),_())for(let w=0;w<10;w++){const v=document.createElement("canvas");v.width=12*I,v.height=20*I,v.getContext("2d").drawImage(W("ref",He(w),12*I,20*I,{smooth:!0}),0,0),v.style.width="24px",B(p,`digit ${w}`,v)}const m=document.createElement("canvas");m.width=64*I,m.height=100*I;const y=m.getContext("2d");y.scale(I,I),ct(y,0,0,96),m.style.width="128px",B(p,"mascot",m);const M=ve(t,"SPEC — source SVG definitions (native vector render; game uses procedural canvas ports of these)");for(const[w,v]of[["pipe_v3.svg","pipe_v3.svg — current material & geometry spec"],["pipe.svg","pipe.svg — original spec (v1)"]]){const T=document.createElement("figure");T.className="asset-card";const x=document.createElement("img");x.src=`./assets/${w}`,x.style.width="640px";const A=document.createElement("figcaption");A.textContent=v,T.appendChild(x),T.appendChild(A),M.appendChild(T)}}async function ms(){await At("./");const s=new URLSearchParams(location.search),e=document.getElementById("game");if(s.has("assets")||location.pathname.includes("PipeDreamz_assets")){ps(e);return}if(s.has("sprites")){us(e);return}new Ve}ms();
-//# sourceMappingURL=dev-BgvzbEgT.js.map
+//# sourceMappingURL=dev-CcXwmU25.js.map

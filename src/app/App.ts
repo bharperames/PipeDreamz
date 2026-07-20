@@ -362,9 +362,15 @@ export class App {
           <tr><td>Bonus round (every 4th level)</td><td>100 per pipe, no penalties</td></tr>
         </table>
 
-        <div class="menu-note">EASY QUEUE biases the dispenser toward pieces your
-        pipeline needs and eases the flow a little. ASSIST traces the path the
-        flooz will take and ghosts the piece that would prevent the spill.</div>
+        <div class="howto-h">HELPERS</div>
+        <table class="howto-keys">
+          <tr><td><span class="howto-chip">EASY QUEUE</span></td>
+            <td>biases the dispenser toward pieces your pipeline needs and eases
+            the flow a little — toggle it on the dispenser rack</td></tr>
+          <tr><td><span class="howto-chip">&#9745; ASSIST</span></td>
+            <td>traces the path the flooz will take and ghosts the piece that
+            would prevent the spill — toggle it in the HUD, or press G</td></tr>
+        </table>
       </div>
       <div class="menu-list">${this.pipeBtn('BACK', 'data-act="back"')}</div>
     `,

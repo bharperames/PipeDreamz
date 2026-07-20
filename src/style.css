@@ -407,6 +407,20 @@ button.pipe-btn,
   font-size: 13px;
 }
 
+/* The in-game chip look, so the helpers are instantly recognizable. */
+.howto-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  margin: 2px 0;
+  background: #12240f;
+  border: 1px solid #35d048;
+  color: #7dff8a;
+  font-weight: bold;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(53, 208, 72, 0.6);
+}
+
 .scores-mode {
   margin-top: 14px;
   font-size: 13px;
