@@ -19,6 +19,8 @@ export interface GameConfig {
   easy: boolean;
   /** Optional dispenser-depth override (experiments). */
   queueDepth?: number;
+  /** Easy-mode far-queue refresh (experiments; game default is on). */
+  easyRefresh?: boolean;
   seed: number;
 }
 
@@ -45,6 +47,7 @@ export function runGame(config: GameConfig): GameResult {
       players: 1,
       easyQueue: config.easy,
       queueDepth: config.queueDepth,
+      easyRefresh: config.easyRefresh,
     },
     mulberry32(config.seed ^ 0x9e3779b9),
   );

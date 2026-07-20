@@ -1,0 +1,642 @@
+[
+  {
+    "label": "depth3-static",
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.346,
+    "avgScore": 356,
+    "medScore": 150,
+    "avgPipes": 6.892,
+    "avgCrosses": 0.182,
+    "endRate": 0,
+    "avgDiscards": 2.562,
+    "fastRate": 0.274
+  },
+  {
+    "label": "depth3-static",
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.306,
+    "avgScore": 329,
+    "medScore": 100,
+    "avgPipes": 6.512,
+    "avgCrosses": 0.178,
+    "endRate": 0,
+    "avgDiscards": 2.418,
+    "fastRate": 0.244
+  },
+  {
+    "label": "depth5-static",
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.432,
+    "avgScore": 314.5,
+    "medScore": 100,
+    "avgPipes": 8.122,
+    "avgCrosses": 0.168,
+    "endRate": 0,
+    "avgDiscards": 4.53,
+    "fastRate": 0.386
+  },
+  {
+    "label": "depth5-static",
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.432,
+    "avgScore": 337.7,
+    "medScore": 100,
+    "avgPipes": 8.184,
+    "avgCrosses": 0.196,
+    "endRate": 0,
+    "avgDiscards": 4.596,
+    "fastRate": 0.386
+  },
+  {
+    "label": "depth5-refresh",
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.49,
+    "avgScore": 534.8,
+    "medScore": 200,
+    "avgPipes": 8.53,
+    "avgCrosses": 0.262,
+    "endRate": 0,
+    "avgDiscards": 3.306,
+    "fastRate": 0.422
+  },
+  {
+    "label": "depth5-refresh",
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.516,
+    "avgScore": 579.7,
+    "medScore": 200,
+    "avgPipes": 8.794,
+    "avgCrosses": 0.29,
+    "endRate": 0,
+    "avgDiscards": 3.518,
+    "fastRate": 0.446
+  },
+  {
+    "label": "depth3-refresh",
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.506,
+    "avgScore": 545.1,
+    "medScore": 200,
+    "avgPipes": 8.556,
+    "avgCrosses": 0.284,
+    "endRate": 0,
+    "avgDiscards": 3.258,
+    "fastRate": 0.444
+  },
+  {
+    "label": "depth3-refresh",
+    "config": {
+      "levelId": 1,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.434,
+    "avgScore": 486,
+    "medScore": 200,
+    "avgPipes": 8.118,
+    "avgCrosses": 0.254,
+    "endRate": 0,
+    "avgDiscards": 3.172,
+    "fastRate": 0.39
+  },
+  {
+    "label": "depth3-static",
+    "config": {
+      "levelId": 5,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.104,
+    "avgScore": 177.9,
+    "medScore": 100,
+    "avgPipes": 5.05,
+    "avgCrosses": 0.104,
+    "endRate": 0,
+    "avgDiscards": 1.638,
+    "fastRate": 0.076
+  },
+  {
+    "label": "depth3-static",
+    "config": {
+      "levelId": 5,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.096,
+    "avgScore": 181.4,
+    "medScore": 100,
+    "avgPipes": 4.828,
+    "avgCrosses": 0.108,
+    "endRate": 0,
+    "avgDiscards": 1.518,
+    "fastRate": 0.074
+  },
+  {
+    "label": "depth5-static",
+    "config": {
+      "levelId": 5,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.114,
+    "avgScore": 105.5,
+    "medScore": 100,
+    "avgPipes": 5.342,
+    "avgCrosses": 0.098,
+    "endRate": 0,
+    "avgDiscards": 2.73,
+    "fastRate": 0.09
+  },
+  {
+    "label": "depth5-static",
+    "config": {
+      "levelId": 5,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.1,
+    "avgScore": 83.1,
+    "medScore": 100,
+    "avgPipes": 5.238,
+    "avgCrosses": 0.054,
+    "endRate": 0,
+    "avgDiscards": 2.526,
+    "fastRate": 0.084
+  },
+  {
+    "label": "depth5-refresh",
+    "config": {
+      "levelId": 5,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.172,
+    "avgScore": 249.5,
+    "medScore": 100,
+    "avgPipes": 5.862,
+    "avgCrosses": 0.156,
+    "endRate": 0,
+    "avgDiscards": 2.042,
+    "fastRate": 0.136
+  },
+  {
+    "label": "depth5-refresh",
+    "config": {
+      "levelId": 5,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.216,
+    "avgScore": 256,
+    "medScore": 100,
+    "avgPipes": 6.138,
+    "avgCrosses": 0.142,
+    "endRate": 0,
+    "avgDiscards": 2.144,
+    "fastRate": 0.172
+  },
+  {
+    "label": "depth3-refresh",
+    "config": {
+      "levelId": 5,
+      "bot": "greedy",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.146,
+    "avgScore": 224.4,
+    "medScore": 100,
+    "avgPipes": 5.714,
+    "avgCrosses": 0.164,
+    "endRate": 0,
+    "avgDiscards": 2.018,
+    "fastRate": 0.11
+  },
+  {
+    "label": "depth3-refresh",
+    "config": {
+      "levelId": 5,
+      "bot": "greedy",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.15,
+    "avgScore": 246.9,
+    "medScore": 100,
+    "avgPipes": 5.734,
+    "avgCrosses": 0.16,
+    "endRate": 0,
+    "avgDiscards": 1.984,
+    "fastRate": 0.122
+  },
+  {
+    "label": "depth3-static",
+    "config": {
+      "levelId": 21,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.17,
+    "avgScore": 487.9,
+    "medScore": 50,
+    "avgPipes": 18.168,
+    "avgCrosses": 0,
+    "endRate": 0.17,
+    "avgDiscards": 6.476,
+    "fastRate": 0.17
+  },
+  {
+    "label": "depth3-static",
+    "config": {
+      "levelId": 21,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.164,
+    "avgScore": 365.3,
+    "medScore": 50,
+    "avgPipes": 18.052,
+    "avgCrosses": 0,
+    "endRate": 0.164,
+    "avgDiscards": 6.698,
+    "fastRate": 0.164
+  },
+  {
+    "label": "depth5-static",
+    "config": {
+      "levelId": 21,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.452,
+    "avgScore": 1163.6,
+    "medScore": 450,
+    "avgPipes": 23.368,
+    "avgCrosses": 0,
+    "endRate": 0.452,
+    "avgDiscards": 11.544,
+    "fastRate": 0.452
+  },
+  {
+    "label": "depth5-static",
+    "config": {
+      "levelId": 21,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.48,
+    "avgScore": 1068.4,
+    "medScore": 750,
+    "avgPipes": 23.666,
+    "avgCrosses": 0,
+    "endRate": 0.48,
+    "avgDiscards": 11.458,
+    "fastRate": 0.48
+  },
+  {
+    "label": "depth5-refresh",
+    "config": {
+      "levelId": 21,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.492,
+    "avgScore": 1342.8,
+    "medScore": 750,
+    "avgPipes": 23.588,
+    "avgCrosses": 0,
+    "endRate": 0.492,
+    "avgDiscards": 11.132,
+    "fastRate": 0.492
+  },
+  {
+    "label": "depth5-refresh",
+    "config": {
+      "levelId": 21,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.532,
+    "avgScore": 1255.6,
+    "medScore": 1600,
+    "avgPipes": 24.238,
+    "avgCrosses": 0,
+    "endRate": 0.532,
+    "avgDiscards": 11.238,
+    "fastRate": 0.532
+  },
+  {
+    "label": "depth3-refresh",
+    "config": {
+      "levelId": 21,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.256,
+    "avgScore": 781.4,
+    "medScore": 200,
+    "avgPipes": 19.562,
+    "avgCrosses": 0,
+    "endRate": 0.256,
+    "avgDiscards": 7.14,
+    "fastRate": 0.256
+  },
+  {
+    "label": "depth3-refresh",
+    "config": {
+      "levelId": 21,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.224,
+    "avgScore": 563.9,
+    "medScore": 150,
+    "avgPipes": 18.636,
+    "avgCrosses": 0,
+    "endRate": 0.224,
+    "avgDiscards": 6.722,
+    "fastRate": 0.224
+  },
+  {
+    "label": "depth3-static",
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.11,
+    "avgScore": 392.3,
+    "medScore": 100,
+    "avgPipes": 19.382,
+    "avgCrosses": 0,
+    "endRate": 0.11,
+    "avgDiscards": 6.71,
+    "fastRate": 0.11
+  },
+  {
+    "label": "depth3-static",
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.1,
+    "avgScore": 376.7,
+    "medScore": 200,
+    "avgPipes": 19.86,
+    "avgCrosses": 0,
+    "endRate": 0.1,
+    "avgDiscards": 6.602,
+    "fastRate": 0.1
+  },
+  {
+    "label": "depth5-static",
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.336,
+    "avgScore": 1028.6,
+    "medScore": 400,
+    "avgPipes": 24.736,
+    "avgCrosses": 0,
+    "endRate": 0.336,
+    "avgDiscards": 11.312,
+    "fastRate": 0.336
+  },
+  {
+    "label": "depth5-static",
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": false
+    },
+    "games": 500,
+    "winRate": 0.39,
+    "avgScore": 987.9,
+    "medScore": 500,
+    "avgPipes": 25.27,
+    "avgCrosses": 0,
+    "endRate": 0.39,
+    "avgDiscards": 11.282,
+    "fastRate": 0.39
+  },
+  {
+    "label": "depth5-refresh",
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.392,
+    "avgScore": 1238.1,
+    "medScore": 600,
+    "avgPipes": 25.096,
+    "avgCrosses": 0,
+    "endRate": 0.392,
+    "avgDiscards": 11.206,
+    "fastRate": 0.392
+  },
+  {
+    "label": "depth5-refresh",
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 5,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.448,
+    "avgScore": 1132.1,
+    "medScore": 800,
+    "avgPipes": 25.746,
+    "avgCrosses": 0,
+    "endRate": 0.448,
+    "avgDiscards": 11.596,
+    "fastRate": 0.448
+  },
+  {
+    "label": "depth3-refresh",
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 200,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.17,
+    "avgScore": 665.7,
+    "medScore": 250,
+    "avgPipes": 20.596,
+    "avgCrosses": 0,
+    "endRate": 0.17,
+    "avgDiscards": 6.868,
+    "fastRate": 0.17
+  },
+  {
+    "label": "depth3-refresh",
+    "config": {
+      "levelId": 24,
+      "bot": "route",
+      "reactionMs": 500,
+      "easy": true,
+      "queueDepth": 3,
+      "easyRefresh": true
+    },
+    "games": 500,
+    "winRate": 0.178,
+    "avgScore": 646.6,
+    "medScore": 300,
+    "avgPipes": 21.46,
+    "avgCrosses": 0,
+    "endRate": 0.178,
+    "avgDiscards": 7.196,
+    "fastRate": 0.178
+  }
+]

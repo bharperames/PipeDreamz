@@ -81,6 +81,35 @@ Depth 3 cost ~10 win-points on chains and **3.5×** on routes. **Shipped:
 easy mode uses depth 5 again**; a `queueDepth` override remains in the core
 for future experiments.
 
+## 4b. Experiment C — fresh bias via far-queue refresh (shipped)
+
+Design insight (from the player): the queue bias is applied when a piece is
+*rolled at the top*, so at depth 5 it arrives five placements stale — chosen
+for a board that no longer exists. Depth 3 makes bias fresher but Experiment
+B showed lookahead dominates. The synthesis: **keep 5 slots, but re-roll
+slots 3–5 against the current board after every placement** — near slots
+stay stable for planning, far slots continuously re-decide.
+
+Win % (500 games/cell, easy mode):
+
+| Config | depth3 static | depth5 static | **depth5 refresh** | depth3 refresh |
+|---|---|---|---|---|
+| L1 greedy 200 ms | 34.6 | 43.2 | **49.0** | 50.6 |
+| L1 greedy 500 ms | 30.6 | 43.2 | **51.6** | 43.4 |
+| L5 greedy 200 ms | 10.4 | 11.4 | **17.2** | 14.6 |
+| L5 greedy 500 ms | 9.6 | 10.0 | **21.6** | 15.0 |
+| L21 route 200 ms | 17.0 | 45.2 | **49.2** | 25.6 |
+| L21 route 500 ms | 16.4 | 48.0 | **53.2** | 22.4 |
+| L24 route 200 ms | 11.0 | 33.6 | **39.2** | 17.0 |
+| L24 route 500 ms | 10.0 | 39.0 | **44.8** | 17.8 |
+
+Depth-5-refresh wins **every cell**, on wins and score alike (L21 score 1343
+vs 1164 static). The control arms cleanly separate the two effects: refresh
+lifts depth 3 substantially (fresh bias is real), but lookahead still
+doubles route wins on top of it. **Shipped**: easy mode = depth 5 + far-queue
+refresh (visible side effect: the upper dispenser slots react to each
+placement — the dispenser "thinks along").
+
 ## 5. Other findings
 
 1. **Deliberate loop-building doesn't pay at human speeds.** The looper bot
@@ -111,6 +140,9 @@ for future experiments.
 ## 6. Shipped tuning changes from this study
 
 - Easy-mode queue depth restored **3 → 5** (Experiment B).
+- **Far-queue refresh** added to easy mode: slots 3–5 re-roll against the
+  current board after each placement (Experiment C — best variant in every
+  cell tested).
 - Duplicate damping kept **per-copy** (Experiment A confirmed the original).
 - Easy solver retains: non-fitting starve (0.4), fit boost (4), open-exit
   boost (8), connect-to-network / END boost (16), discard-kind damping

@@ -52,6 +52,18 @@ export class DispenserQueue {
     return this.items;
   }
 
+  /**
+   * Re-roll every slot at or above `fromIdx` against current bias.
+   * Easy mode calls this after each placement so the FAR queue reacts
+   * to the board as it is now, while the near slots stay stable for
+   * player planning.
+   */
+  refreshTail(fromIdx: number): void {
+    for (let i = Math.max(0, fromIdx); i < this.items.length; i++) {
+      this.items[i] = this.roll();
+    }
+  }
+
   next(): PlaceableKind {
     return this.items[0]!;
   }

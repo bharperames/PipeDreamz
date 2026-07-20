@@ -39,6 +39,12 @@ export interface GameRoundConfig {
   easyQueue?: boolean;
   /** Override the basic-mode dispenser depth (default 5; easy 3). */
   queueDepth?: number;
+  /**
+   * Easy mode: re-roll the far queue slots (index 2+) against the
+   * current board after each placement, so the bias stays fresh without
+   * sacrificing lookahead. Defaults on when easyQueue is on.
+   */
+  easyRefresh?: boolean;
 }
 
 interface PieceMeta {
@@ -61,6 +67,7 @@ export class GameRound {
 
   private meta = new Map<PlacedPiece, PieceMeta>();
   private lastFilledDispenser: 0 | 1 | null = null;
+  private easyRefresh: boolean;
 
   constructor(config: GameRoundConfig, rng: Rng) {
     const scale = config.timeScale ?? 1;
@@ -82,6 +89,7 @@ export class GameRound {
     }
 
     this.easyQueue = config.easyQueue ?? false;
+    this.easyRefresh = config.easyRefresh ?? true;
     const bias: BiasProvider = () => (this.easyQueue ? this.neededWeights() : null);
     // Depth 5 everywhere: A/B simulation showed the visible queue is
     // LOOKAHEAD, not just delay — cutting easy mode to depth 3 lowered
@@ -247,6 +255,10 @@ export class GameRound {
     );
     this.grid.set(pos, piece);
     this.meta.set(piece, { dispenser });
+
+    // Easy mode: the far queue re-decides against the board as it is
+    // NOW (including the piece just placed); near slots stay stable.
+    if (this.easyQueue && this.easyRefresh) q.refreshTail(2);
 
     return [{ type: 'piecePlaced', pos, kind, player, wasReplacement }];
   }
