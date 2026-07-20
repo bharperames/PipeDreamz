@@ -203,24 +203,66 @@ export function extract(
   // 2. chroma key
   if (opts.key || opts.keySelf) {
     const cctx = crop.getContext('2d')!;
-    let kc: { r: number; g: number; b: number };
-    if (opts.keySelf) {
-      const d = cctx.getImageData(2, 2, 1, 1).data;
-      kc = { r: d[0]!, g: d[1]!, b: d[2]! };
-    } else {
-      kc = sampleKeyColor();
-    }
-    const ctx = cctx;
-    const img = ctx.getImageData(0, 0, crop.width, crop.height);
+    const img = cctx.getImageData(0, 0, crop.width, crop.height);
     const t = opts.threshold ?? 52;
     const data = img.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const dr = data[i]! - kc.r;
-      const dg = data[i + 1]! - kc.g;
-      const db = data[i + 2]! - kc.b;
-      if (Math.sqrt(dr * dr + dg * dg + db * db) < t) data[i + 3] = 0;
+    const w = crop.width;
+    const h = crop.height;
+    if (opts.keySelf) {
+      // Key against the crop's own background, but only clear pixels
+      // CONNECTED to the border (flood fill). Character-interior pixels
+      // that happen to match the background color (dark overalls,
+      // shadows) stay opaque instead of becoming see-through holes.
+      const kr = data[(2 * w + 2) * 4]!;
+      const kg = data[(2 * w + 2) * 4 + 1]!;
+      const kb = data[(2 * w + 2) * 4 + 2]!;
+      const t2 = t * t;
+      const near = (idx: number) => {
+        const i = idx * 4;
+        const dr = data[i]! - kr;
+        const dg = data[i + 1]! - kg;
+        const db = data[i + 2]! - kb;
+        return dr * dr + dg * dg + db * db < t2;
+      };
+      const bg = new Uint8Array(w * h);
+      const stack: number[] = [];
+      const seed = (x: number, y: number) => {
+        const idx = y * w + x;
+        if (!bg[idx] && near(idx)) {
+          bg[idx] = 1;
+          stack.push(idx);
+        }
+      };
+      for (let x = 0; x < w; x++) {
+        seed(x, 0);
+        seed(x, h - 1);
+      }
+      for (let y = 0; y < h; y++) {
+        seed(0, y);
+        seed(w - 1, y);
+      }
+      while (stack.length) {
+        const idx = stack.pop()!;
+        const x = idx % w;
+        const y = (idx - x) / w;
+        if (x > 0) seed(x - 1, y);
+        if (x < w - 1) seed(x + 1, y);
+        if (y > 0) seed(x, y - 1);
+        if (y < h - 1) seed(x, y + 1);
+      }
+      for (let idx = 0; idx < bg.length; idx++) {
+        if (bg[idx]) data[idx * 4 + 3] = 0;
+      }
+    } else {
+      const kc = sampleKeyColor();
+      for (let i = 0; i < data.length; i += 4) {
+        const dr = data[i]! - kc.r;
+        const dg = data[i + 1]! - kc.g;
+        const db = data[i + 2]! - kc.b;
+        if (Math.sqrt(dr * dr + dg * dg + db * db) < t) data[i + 3] = 0;
+      }
     }
-    ctx.putImageData(img, 0, 0);
+    cctx.putImageData(img, 0, 0);
   }
 
   // 3. rotate
