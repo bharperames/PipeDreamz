@@ -28,6 +28,13 @@ import {
  */
 export const STICKY_KEEP_WEIGHT = 2;
 
+/**
+ * Easy mode eases the clock as well as the queue: per-pipe fill time is
+ * multiplied by this while the easy switch is on (25% slower flooz).
+ * The pre-flow countdown is unchanged.
+ */
+export const EASY_FLOW_FACTOR = 1.25;
+
 /** Delay before a bombed-in replacement piece becomes flow-connectable. */
 export const PLACE_DELAY_MS = 350;
 /** Minimum age of a piece before it may be replaced. */
@@ -80,7 +87,17 @@ export class GameRound {
   over = false;
   result: RoundResult | null = null;
   /** Live-togglable: biases future dispenser rolls when true. */
-  easyQueue = false;
+  private _easyQueue = false;
+
+  get easyQueue(): boolean {
+    return this._easyQueue;
+  }
+
+  set easyQueue(on: boolean) {
+    this._easyQueue = on;
+    // Easy mode also eases the clock: the flooz fills a bit slower.
+    if (this.flow) this.flow.easeFactor = on ? EASY_FLOW_FACTOR : 1;
+  }
 
   private meta = new Map<PlacedPiece, PieceMeta>();
   private lastFilledDispenser: 0 | 1 | null = null;
@@ -121,6 +138,8 @@ export class GameRound {
         : [new DispenserQueue(rng, basicDepth, this.level.pieceWeights, bias)];
 
     this.flow = new FlowSim(this.level, this.grid);
+    // Re-apply: the setter ran before the flow existed.
+    this.flow.easeFactor = this._easyQueue ? EASY_FLOW_FACTOR : 1;
   }
 
   /**

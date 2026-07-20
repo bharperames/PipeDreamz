@@ -29,6 +29,8 @@ export class FlowSim {
   segmentElapsedMs = 0;
   pipesFilled = 0;
   fastForward = false;
+  /** Easy-mode comfort: fill durations are multiplied by this (set by the round). */
+  easeFactor = 1;
   /** Sim clock, advanced by tick; readable by the round for lockouts. */
   nowMs = 0;
 
@@ -41,9 +43,9 @@ export class FlowSim {
 
   /** Duration to fill the piece currently under the head. */
   segmentDurationMs(): number {
-    if (!this.head) return this.level.fillMs;
+    if (!this.head) return this.level.fillMs * this.easeFactor;
     const piece = this.grid.get(this.head.pos);
-    let ms = this.level.fillMs;
+    let ms = this.level.fillMs * this.easeFactor;
     if (piece && isReservoir(piece.kind)) ms *= RESERVOIR_FILL_FACTOR;
     if (this.fastForward) ms = Math.min(ms, FAST_FILL_MS);
     return ms;

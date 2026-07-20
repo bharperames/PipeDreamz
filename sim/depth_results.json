@@ -242,14 +242,14 @@
       "queueDepth": 3
     },
     "games": 500,
-    "winRate": 0.288,
-    "avgScore": 899.6,
+    "winRate": 0.282,
+    "avgScore": 910,
     "medScore": 350,
-    "avgPipes": 20.11,
+    "avgPipes": 20.156,
     "avgCrosses": 0,
-    "endRate": 0.288,
-    "avgDiscards": 6.574,
-    "fastRate": 0.288
+    "endRate": 0.282,
+    "avgDiscards": 6.588,
+    "fastRate": 0.282
   },
   {
     "config": {
@@ -278,14 +278,14 @@
       "queueDepth": 4
     },
     "games": 500,
-    "winRate": 0.406,
-    "avgScore": 1178.8,
-    "medScore": 650,
-    "avgPipes": 23.282,
+    "winRate": 0.37,
+    "avgScore": 1125,
+    "medScore": 550,
+    "avgPipes": 22.99,
     "avgCrosses": 0,
-    "endRate": 0.406,
-    "avgDiscards": 8.694,
-    "fastRate": 0.406
+    "endRate": 0.37,
+    "avgDiscards": 8.482,
+    "fastRate": 0.37
   },
   {
     "config": {
@@ -314,13 +314,13 @@
       "queueDepth": 5
     },
     "games": 500,
-    "winRate": 0.576,
-    "avgScore": 1534.9,
-    "medScore": 2100,
-    "avgPipes": 24.732,
+    "winRate": 0.534,
+    "avgScore": 1470.2,
+    "medScore": 1900,
+    "avgPipes": 24.632,
     "avgCrosses": 0,
-    "endRate": 0.576,
-    "avgDiscards": 10.232,
-    "fastRate": 0.576
+    "endRate": 0.534,
+    "avgDiscards": 10.31,
+    "fastRate": 0.534
   }
 ]

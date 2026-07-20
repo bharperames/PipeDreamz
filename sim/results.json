@@ -95,10 +95,10 @@
     "winRate": 0.465,
     "avgScore": 627,
     "medScore": 200,
-    "avgPipes": 8.905,
-    "avgCrosses": 0.38,
+    "avgPipes": 8.94,
+    "avgCrosses": 0.365,
     "endRate": 0,
-    "avgDiscards": 3.925,
+    "avgDiscards": 3.92,
     "fastRate": 0.415
   },
   {
@@ -195,12 +195,12 @@
     },
     "games": 200,
     "winRate": 0.37,
-    "avgScore": 198.25,
+    "avgScore": 203.75,
     "medScore": 0,
-    "avgPipes": 7.64,
+    "avgPipes": 7.68,
     "avgCrosses": 0.135,
     "endRate": 0,
-    "avgDiscards": 3.085,
+    "avgDiscards": 3.1,
     "fastRate": 0.315
   },
   {
@@ -297,12 +297,12 @@
     },
     "games": 200,
     "winRate": 0.285,
-    "avgScore": 322.75,
+    "avgScore": 343.75,
     "medScore": 100,
-    "avgPipes": 6.755,
-    "avgCrosses": 0.2,
+    "avgPipes": 6.825,
+    "avgCrosses": 0.215,
     "endRate": 0,
-    "avgDiscards": 2.575,
+    "avgDiscards": 2.58,
     "fastRate": 0.215
   },
   {
@@ -399,12 +399,12 @@
     },
     "games": 200,
     "winRate": 0.155,
-    "avgScore": 73.5,
+    "avgScore": 84,
     "medScore": 50,
-    "avgPipes": 5.76,
-    "avgCrosses": 0.085,
+    "avgPipes": 5.795,
+    "avgCrosses": 0.095,
     "endRate": 0,
-    "avgDiscards": 2.26,
+    "avgDiscards": 2.275,
     "fastRate": 0.1
   },
   {
@@ -500,13 +500,13 @@
       "easy": true
     },
     "games": 200,
-    "winRate": 0.06,
-    "avgScore": 191.75,
+    "winRate": 0.065,
+    "avgScore": 183.5,
     "medScore": 100,
-    "avgPipes": 6.14,
+    "avgPipes": 6.125,
     "avgCrosses": 0.22,
     "endRate": 0,
-    "avgDiscards": 2.555,
+    "avgDiscards": 2.61,
     "fastRate": 0.045
   },
   {
@@ -603,12 +603,12 @@
     },
     "games": 200,
     "winRate": 0.03,
-    "avgScore": -0.75,
+    "avgScore": -0.25,
     "medScore": 0,
-    "avgPipes": 5.29,
+    "avgPipes": 5.315,
     "avgCrosses": 0.09,
     "endRate": 0,
-    "avgDiscards": 2.565,
+    "avgDiscards": 2.6,
     "fastRate": 0.03
   },
   {
@@ -670,13 +670,13 @@
       "easy": true
     },
     "games": 200,
-    "winRate": 0.005,
-    "avgScore": 168.75,
+    "winRate": 0,
+    "avgScore": 166.25,
     "medScore": 100,
-    "avgPipes": 6.115,
+    "avgPipes": 6.13,
     "avgCrosses": 0.185,
-    "endRate": 0.02,
-    "avgDiscards": 2.575,
+    "endRate": 0.015,
+    "avgDiscards": 2.6,
     "fastRate": 0.01
   },
   {
@@ -704,14 +704,14 @@
       "easy": true
     },
     "games": 200,
-    "winRate": 0,
-    "avgScore": 168.75,
+    "winRate": 0.01,
+    "avgScore": 219,
     "medScore": 100,
-    "avgPipes": 6.175,
-    "avgCrosses": 0.21,
-    "endRate": 0.01,
-    "avgDiscards": 2.545,
-    "fastRate": 0
+    "avgPipes": 6.48,
+    "avgCrosses": 0.245,
+    "endRate": 0.025,
+    "avgDiscards": 2.655,
+    "fastRate": 0.025
   },
   {
     "config": {
@@ -772,14 +772,14 @@
       "easy": true
     },
     "games": 200,
-    "winRate": 0,
-    "avgScore": -17.75,
+    "winRate": 0.005,
+    "avgScore": -8,
     "medScore": 0,
-    "avgPipes": 5.26,
+    "avgPipes": 5.265,
     "avgCrosses": 0.09,
-    "endRate": 0.015,
-    "avgDiscards": 2.515,
-    "fastRate": 0
+    "endRate": 0.02,
+    "avgDiscards": 2.52,
+    "fastRate": 0.005
   },
   {
     "config": {
@@ -807,12 +807,12 @@
     },
     "games": 200,
     "winRate": 0,
-    "avgScore": -16.75,
+    "avgScore": -17.75,
     "medScore": 0,
-    "avgPipes": 4.82,
-    "avgCrosses": 0.09,
+    "avgPipes": 4.85,
+    "avgCrosses": 0.085,
     "endRate": 0.005,
-    "avgDiscards": 2.305,
+    "avgDiscards": 2.295,
     "fastRate": 0
   },
   {
@@ -874,14 +874,14 @@
       "easy": true
     },
     "games": 200,
-    "winRate": 0.57,
-    "avgScore": 1529,
-    "medScore": 1950,
-    "avgPipes": 25.075,
+    "winRate": 0.53,
+    "avgScore": 1473.5,
+    "medScore": 2050,
+    "avgPipes": 24.625,
     "avgCrosses": 0,
-    "endRate": 0.57,
-    "avgDiscards": 10.38,
-    "fastRate": 0.57
+    "endRate": 0.53,
+    "avgDiscards": 10.165,
+    "fastRate": 0.53
   },
   {
     "config": {
@@ -908,14 +908,14 @@
       "easy": true
     },
     "games": 200,
-    "winRate": 0.005,
-    "avgScore": -483.75,
-    "medScore": -550,
-    "avgPipes": 8.815,
+    "winRate": 0.165,
+    "avgScore": -25.5,
+    "medScore": -400,
+    "avgPipes": 15.105,
     "avgCrosses": 0,
-    "endRate": 0.005,
-    "avgDiscards": 3.715,
-    "fastRate": 0.005
+    "endRate": 0.165,
+    "avgDiscards": 5.965,
+    "fastRate": 0.165
   },
   {
     "config": {
@@ -977,12 +977,12 @@
     },
     "games": 200,
     "winRate": 0,
-    "avgScore": 152.5,
+    "avgScore": 153,
     "medScore": 100,
-    "avgPipes": 6.05,
+    "avgPipes": 6.04,
     "avgCrosses": 0.165,
     "endRate": 0,
-    "avgDiscards": 2.46,
+    "avgDiscards": 2.45,
     "fastRate": 0
   },
   {
@@ -1011,12 +1011,12 @@
     },
     "games": 200,
     "winRate": 0,
-    "avgScore": 161.75,
+    "avgScore": 168,
     "medScore": 150,
-    "avgPipes": 6.01,
-    "avgCrosses": 0.105,
+    "avgPipes": 6.145,
+    "avgCrosses": 0.11,
     "endRate": 0.005,
-    "avgDiscards": 2.1,
+    "avgDiscards": 2.13,
     "fastRate": 0
   },
   {
@@ -1079,12 +1079,12 @@
     },
     "games": 200,
     "winRate": 0,
-    "avgScore": 20,
+    "avgScore": 26.5,
     "medScore": 50,
     "avgPipes": 5.875,
     "avgCrosses": 0.09,
     "endRate": 0.01,
-    "avgDiscards": 2.42,
+    "avgDiscards": 2.365,
     "fastRate": 0
   },
   {
@@ -1113,12 +1113,12 @@
     },
     "games": 200,
     "winRate": 0,
-    "avgScore": 45.75,
+    "avgScore": 40.75,
     "medScore": 50,
-    "avgPipes": 5.59,
-    "avgCrosses": 0.07,
+    "avgPipes": 5.64,
+    "avgCrosses": 0.075,
     "endRate": 0.01,
-    "avgDiscards": 2.045,
+    "avgDiscards": 2.095,
     "fastRate": 0
   },
   {
@@ -1180,14 +1180,14 @@
       "easy": true
     },
     "games": 200,
-    "winRate": 0.57,
-    "avgScore": 1619,
-    "medScore": 2000,
-    "avgPipes": 26.785,
+    "winRate": 0.485,
+    "avgScore": 1506.75,
+    "medScore": 900,
+    "avgPipes": 26.085,
     "avgCrosses": 0,
-    "endRate": 0.57,
-    "avgDiscards": 10.55,
-    "fastRate": 0.57
+    "endRate": 0.485,
+    "avgDiscards": 10.155,
+    "fastRate": 0.485
   },
   {
     "config": {
@@ -1215,12 +1215,12 @@
     },
     "games": 200,
     "winRate": 0,
-    "avgScore": -446,
-    "medScore": -500,
-    "avgPipes": 6.44,
+    "avgScore": -459.25,
+    "medScore": -550,
+    "avgPipes": 8.255,
     "avgCrosses": 0,
     "endRate": 0,
-    "avgDiscards": 2.9,
+    "avgDiscards": 3.35,
     "fastRate": 0
   }
 ]

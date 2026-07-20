@@ -195,6 +195,17 @@ noting: sticky refresh rescued much of depth-3's deficit (L1 depth3-
 refresh now ≈ depth5), confirming thrash was a real loss mechanism —
 depth 5 remains best for route play and stays the default.
 
+## 6d. Addendum — easy mode eases the clock (shipped)
+
+Player feedback: the flooz feels too fast under easy mode's target
+audience. Easy mode now multiplies per-pipe fill time by **1.25×**
+(`EASY_FLOW_FACTOR`), live with the switch; the pre-flow countdown and
+fast-forward are unchanged. Spot-check (200 games/cell): L1 greedy
+200 ms easy 50.4% → **54.5%** wins (score 637 → 732), L5 and L21 route
+neutral-to-up. Bots are decision-budget-limited, so human players (who
+benefit from *time per decision*, not just decision count) should feel
+a larger effect than the simulation shows.
+
 ## 7. Reproducing
 
 ```sh

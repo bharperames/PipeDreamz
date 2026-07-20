@@ -197,7 +197,11 @@ body {
   font-weight: bold;
   letter-spacing: 4px;
   color: var(--green);
-  text-shadow: 0 0 24px rgba(53, 208, 72, 0.5), 3px 3px 0 #14501d;
+  text-shadow:
+    0 0 8px rgba(85, 255, 102, 0.9),
+    0 0 28px rgba(53, 208, 72, 0.7),
+    0 0 60px rgba(53, 208, 72, 0.4),
+    3px 3px 0 #14501d;
   margin-bottom: 6px;
 }
 
@@ -245,6 +249,56 @@ body {
 
 .menu-list button.primary:hover {
   background: #274a2e;
+}
+
+/* Glass-and-brass pipe buttons (from the player's SVG spec). The
+   .menu-list button rules must not leak in, hence the heavier selector. */
+button.pipe-btn,
+.menu-list button.pipe-btn,
+.menu-list button.pipe-btn:hover,
+.menu-list button.pipe-btn.primary {
+  display: block;
+  width: 100%;
+  height: 52px;
+  margin: 6px 0;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+  filter: drop-shadow(0 5px 4px rgba(0, 0, 0, 0.6));
+}
+
+.pipe-btn svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pipe-btn-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  letter-spacing: 4px;
+  fill: #55ff66;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.pipe-btn-text.top {
+  fill: #ccffcc;
+}
+
+.menu-list button.pipe-btn:hover {
+  filter: drop-shadow(0 5px 4px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 10px rgba(85, 255, 102, 0.5));
+}
+
+.pipe-btn:hover .pipe-btn-text.top {
+  fill: #f2fff2;
+}
+
+.menu-list button.pipe-btn.primary {
+  height: 68px;
 }
 
 .title-opts {

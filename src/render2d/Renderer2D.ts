@@ -210,6 +210,12 @@ export class Renderer2D {
     g.restore();
   }
 
+  /** Mascot at a board cell position, sized in cells (menu dressing). */
+  drawMascotAt(cellX: number, cellY: number, cellsHigh: number): void {
+    const o = this.cellOrigin(cellX, cellY);
+    drawMascot(this.g, o.x, o.y, cellsHigh * CELL);
+  }
+
   /** Dashed rounded selection frame, like the original's cursor. */
   drawCursorAt(x: number, y: number, valid: boolean, color: string = PAL.white): void {
     if (x < 0 || y < 0 || x >= this.level.gridW || y >= this.level.gridH) return;

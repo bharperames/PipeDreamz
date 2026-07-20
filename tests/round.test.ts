@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { makeRound, runReplay, SIM_DT, TimedAction } from '../src/core/replay';
 import { LEVELS } from '../src/core/levels/levels';
 import { SCORE } from '../src/core/scoring';
+import { EASY_FLOW_FACTOR } from '../src/core/round';
 import { at, lay, makeLevel, makeTestRound, run } from './helpers';
 
 describe('expert mode', () => {
@@ -29,6 +30,24 @@ describe('expert mode', () => {
     round.apply({ type: 'place', player: 0, pos: at(5, 5), dispenser: 1 });
     expect([...round.queues[0]!.peek()]).toEqual(before0);
     expect(round.queues[1]!.peek()[0]).not.toBe(before1[0] === before1[1] ? undefined : before1[0]);
+  });
+});
+
+describe('easy-mode flow easing', () => {
+  it('slows fill by EASY_FLOW_FACTOR while easy is on, live-togglable', () => {
+    const level = makeLevel();
+    const round = makeTestRound(level, { easyQueue: true });
+    expect(round.flow.segmentDurationMs()).toBe(level.fillMs * EASY_FLOW_FACTOR);
+    round.easyQueue = false;
+    expect(round.flow.segmentDurationMs()).toBe(level.fillMs);
+    round.easyQueue = true;
+    expect(round.flow.segmentDurationMs()).toBe(level.fillMs * EASY_FLOW_FACTOR);
+  });
+
+  it('normal mode is unaffected', () => {
+    const level = makeLevel();
+    const round = makeTestRound(level, {});
+    expect(round.flow.segmentDurationMs()).toBe(level.fillMs);
   });
 });
 

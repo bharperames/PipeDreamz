@@ -1,5 +1,5 @@
 import { LEVELS } from '../core/levels/levels';
-import { GameMode, RoundResult } from '../core/types';
+import { GameMode, PlaceableKind, RoundResult } from '../core/types';
 import { SCORE } from '../core/scoring';
 import { Renderer2D } from '../render2d/Renderer2D';
 import { MusicPlayer, TrackName } from '../audio/MusicPlayer';
@@ -98,14 +98,45 @@ export class App {
     requestAnimationFrame((tt) => this.frame(tt));
   }
 
-  /** Idle backdrop behind DOM menus: the level-1 board, empty and waiting. */
+  /**
+   * Idle backdrop behind DOM menus: the level-1 board dressed with
+   * glowing, flooz-filled pipework snaking around the edges (the menu
+   * panel covers the center) and the mascot looking on from the right.
+   */
+  private static readonly BACKDROP_PIPES: Array<{ x: number; y: number; kind: PlaceableKind }> = [
+    // Left column, rising then turning right along the top.
+    { x: 0, y: 5, kind: 'V' },
+    { x: 0, y: 4, kind: 'V' },
+    { x: 0, y: 3, kind: 'V' },
+    { x: 0, y: 2, kind: 'V' },
+    { x: 0, y: 1, kind: 'SE' },
+    { x: 1, y: 1, kind: 'H' },
+    { x: 2, y: 1, kind: 'X' },
+    { x: 3, y: 1, kind: 'H' },
+    // Right column, dropping then turning left along the bottom.
+    { x: 9, y: 1, kind: 'V' },
+    { x: 9, y: 2, kind: 'V' },
+    { x: 9, y: 3, kind: 'V' },
+    { x: 9, y: 4, kind: 'V' },
+    { x: 9, y: 5, kind: 'NW' },
+    { x: 8, y: 5, kind: 'H' },
+    { x: 7, y: 5, kind: 'X' },
+    { x: 6, y: 5, kind: 'H' },
+  ];
+
   private drawMenuBackdrop(): void {
     const r = this.renderer;
     r.begin();
     r.drawBoard(LEVELS[0]!);
+    for (const p of App.BACKDROP_PIPES) {
+      r.drawPieceAt(p.x, p.y, p.kind);
+      r.drawFloozAt(p.x, p.y, p.kind, 0, 1, false);
+      if (p.kind === 'X') r.drawFloozAt(p.x, p.y, p.kind, 1, 1, false);
+    }
     r.drawPieceAt(LEVELS[0]!.start.pos.x, LEVELS[0]!.start.pos.y, 'START', {
       startExit: LEVELS[0]!.start.exit,
     });
+    r.drawMascotAt(8.2, 1.6, 3.4);
     r.present();
   }
 
@@ -120,6 +151,68 @@ export class App {
     this.menuRoot.innerHTML = `<div class="panel">${html}</div>`;
     this.menuRoot.classList.add('visible');
     return this.menuRoot;
+  }
+
+  /**
+   * Menu button rendered as the glass-and-brass pipe from the player's
+   * SVG spec: dark pipe body, brass flanges, glass window with glowing
+   * neon text behind a glare. `attrs` carries the data-* hook, e.g.
+   * 'data-act="start"'.
+   */
+  private pipeBtn(label: string, attrs: string, primary = false): string {
+    const fs = primary ? 26 : 19;
+    const est = label.length * fs * 0.62 + (label.length - 1) * 4;
+    const fit = est > 246 ? ' textLength="246" lengthAdjust="spacingAndGlyphs"' : '';
+    const text = (cls: string, glow: boolean) =>
+      `<text x="200" y="52" class="pipe-btn-text${cls}"${glow ? ' filter="url(#pbGlow)"' : ''} font-size="${fs}"${fit}>${label}</text>`;
+    return `
+      <button class="pipe-btn${primary ? ' primary' : ''}" ${attrs}>
+        <svg viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="pbBrass" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#5a3d0d"/><stop offset=".15" stop-color="#b8862d"/>
+              <stop offset=".3" stop-color="#ffebb5"/><stop offset=".5" stop-color="#d49e31"/>
+              <stop offset=".75" stop-color="#735114"/><stop offset=".9" stop-color="#e8b958"/>
+              <stop offset="1" stop-color="#3d2705"/>
+            </linearGradient>
+            <linearGradient id="pbPipe" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#2c2d30"/><stop offset=".25" stop-color="#4a4b50"/>
+              <stop offset=".5" stop-color="#18191c"/><stop offset=".8" stop-color="#0a0a0c"/>
+              <stop offset="1" stop-color="#1e1f22"/>
+            </linearGradient>
+            <linearGradient id="pbGlassBg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#050806"/><stop offset="1" stop-color="#121814"/>
+            </linearGradient>
+            <linearGradient id="pbGlare" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#fff" stop-opacity=".25"/>
+              <stop offset=".35" stop-color="#fff" stop-opacity=".05"/>
+              <stop offset=".36" stop-color="#fff" stop-opacity="0"/>
+              <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+            </linearGradient>
+            <filter id="pbGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <rect x="50" y="25" width="300" height="50" rx="4" fill="url(#pbPipe)" stroke="#111" stroke-width="2"/>
+          <rect x="36" y="15" width="14" height="70" rx="2" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
+          <rect x="50" y="20" width="8" height="60" rx="1" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
+          <rect x="350" y="15" width="14" height="70" rx="2" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
+          <rect x="342" y="20" width="8" height="60" rx="1" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
+          <rect x="68" y="28" width="264" height="44" rx="6" fill="url(#pbBrass)" stroke="#1a1a1a" stroke-width="2"/>
+          <rect x="72" y="32" width="256" height="36" rx="4" fill="url(#pbGlassBg)" stroke="#000" stroke-width="1.5"/>
+          ${text('', true)}
+          ${text(' top', false)}
+          <rect x="72" y="32" width="256" height="36" rx="4" fill="url(#pbGlare)" pointer-events="none"/>
+          <line x1="75" y1="34" x2="325" y2="34" stroke="#fff" stroke-opacity=".15" stroke-width="1.5"/>
+          <line x1="75" y1="66" x2="325" y2="66" stroke="#000" stroke-opacity=".4" stroke-width="1.5"/>
+        </svg>
+      </button>`;
+  }
+
+  /** Update a pipe button's label (both the glow and top text layers). */
+  private setPipeLabel(btn: Element, label: string): void {
+    btn.querySelectorAll('text').forEach((t) => (t.textContent = label));
   }
 
   private hideMenu(): void {
@@ -169,7 +262,7 @@ export class App {
       <div class="title-logo">PIPEDREAMZ</div>
       <div class="title-sub">an original tribute to the classic 1989 pipe-building puzzle</div>
       <div class="menu-list">
-        <button data-act="start" class="primary">START</button>
+        ${this.pipeBtn('START', 'data-act="start"', true)}
       </div>
       <div class="title-opts">
         <select data-act="level">${levelOptions}</select>
@@ -180,7 +273,7 @@ export class App {
         <a data-act="scores">high scores</a> ·
         <a data-act="settings">options</a>
       </div>
-      <div class="menu-note">Build a pipeline before the flooz starts flowing.</div>
+      <div class="menu-note">Build faster, the flooz is rising!</div>
     `);
     el.querySelector('[data-act=start]')!.addEventListener('click', () => {
       this.sfx.play('menu');
@@ -218,12 +311,12 @@ export class App {
     const el = this.menu(`
       <h2 class="panel-heading">SELECT MODE</h2>
       <div class="menu-list">
-        <button data-mode="basic">BASIC ONE-PLUMBER</button>
-        <button data-mode="expert">EXPERT ONE-PLUMBER</button>
-        <button data-mode="competitive">COMPETITIVE TWO-PLUMBER</button>
-        <button data-act="training">TRAINING: OFF</button>
-        <button data-act="easy">EASY QUEUE: ${easy ? 'ON' : 'OFF'}</button>
-        <button data-act="back">BACK</button>
+        ${this.pipeBtn('BASIC ONE-PLUMBER', 'data-mode="basic"')}
+        ${this.pipeBtn('EXPERT ONE-PLUMBER', 'data-mode="expert"')}
+        ${this.pipeBtn('COMPETITIVE TWO-PLUMBER', 'data-mode="competitive"')}
+        ${this.pipeBtn('TRAINING: OFF', 'data-act="training"')}
+        ${this.pipeBtn(`EASY QUEUE: ${easy ? 'ON' : 'OFF'}`, 'data-act="easy"')}
+        ${this.pipeBtn('BACK', 'data-act="back"')}
       </div>
       <div class="menu-note">Basic: one dispenser, five pieces queued.<br/>
       Expert: two dispensers — alternate them for bonus points.<br/>
@@ -233,13 +326,13 @@ export class App {
     const trainingBtn = el.querySelector('[data-act=training]') as HTMLButtonElement;
     trainingBtn.addEventListener('click', () => {
       training = !training;
-      trainingBtn.textContent = `TRAINING: ${training ? 'ON' : 'OFF'}`;
+      this.setPipeLabel(trainingBtn, `TRAINING: ${training ? 'ON' : 'OFF'}`);
       this.sfx.play('menu');
     });
     const easyBtn = el.querySelector('[data-act=easy]') as HTMLButtonElement;
     easyBtn.addEventListener('click', () => {
       easy = !easy;
-      easyBtn.textContent = `EASY QUEUE: ${easy ? 'ON' : 'OFF'}`;
+      this.setPipeLabel(easyBtn, `EASY QUEUE: ${easy ? 'ON' : 'OFF'}`);
       this.sfx.play('menu');
     });
     el.querySelector('[data-act=back]')!.addEventListener('click', () => this.showTitle());
@@ -273,7 +366,7 @@ export class App {
         <div>Flooz delay <span class="num">${(level.delayMs / 1000).toFixed(1)}s</span></div>
         ${features.length ? `<div>Watch for: ${features.join(', ')}</div>` : ''}
       </div>
-      <div class="menu-list"><button data-act="go">GO! <span class="blink">▶</span></button></div>
+      <div class="menu-list">${this.pipeBtn('GO! ▶', 'data-act="go"', true)}</div>
     `);
     el.querySelector('[data-act=go]')!.addEventListener('click', () => this.startRound());
   }
@@ -377,9 +470,7 @@ export class App {
       this.screen instanceof PlayingScreen &&
       this.screen.actionLog.length > 0 &&
       this.lastRound !== null;
-    const replayBtn = canReplay
-      ? '<button data-act="replay">INSTANT REPLAY ⟲</button>'
-      : '';
+    const replayBtn = canReplay ? this.pipeBtn('INSTANT REPLAY ⟲', 'data-act="replay"') : '';
 
     if (result.won) {
       const finishedGame = s.levelIndex + 1 >= LEVELS.length;
@@ -387,9 +478,10 @@ export class App {
       const el = this.menu(`
         <h2 class="panel-heading">LEVEL ${s.levelIndex + 1} COMPLETE</h2>
         <div class="tally">${rows.join('')}</div>
-        <div class="menu-list"><button data-act="next">${
-          finishedGame ? 'FINISH' : bonusNext ? 'BONUS ROUND ▶' : 'NEXT LEVEL ▶'
-        }</button>${replayBtn}</div>
+        <div class="menu-list">${this.pipeBtn(
+          finishedGame ? 'FINISH' : bonusNext ? 'BONUS ROUND ▶' : 'NEXT LEVEL ▶',
+          'data-act="next"',
+        )}${replayBtn}</div>
       `);
       el.querySelector('[data-act=next]')!.addEventListener('click', () => {
         this.sfx.play('menu');
@@ -406,7 +498,7 @@ export class App {
       const el = this.menu(`
         <h2 class="panel-heading" style="color:var(--red)">THE FLOOZ SPILLED!</h2>
         <div class="tally">${rows.join('')}</div>
-        <div class="menu-list"><button data-act="over">CONTINUE</button>${replayBtn}</div>
+        <div class="menu-list">${this.pipeBtn('CONTINUE', 'data-act="over"')}${replayBtn}</div>
       `);
       el.querySelector('[data-act=over]')!.addEventListener('click', () => this.showGameOver(false));
       el.querySelector('[data-act=replay]')?.addEventListener('click', () => {
@@ -472,7 +564,7 @@ export class App {
             <div>Bonus points <span class="num">${score}</span></div>
             <div class="total">Total score <span class="num">${s.totals[0]}</span></div>
           </div>
-          <div class="menu-list"><button data-act="next">NEXT LEVEL ▶</button></div>
+          <div class="menu-list">${this.pipeBtn('NEXT LEVEL ▶', 'data-act="next"')}</div>
         `);
         el.querySelector('[data-act=next]')!.addEventListener('click', () => {
           this.sfx.play('menu');
@@ -517,8 +609,8 @@ export class App {
       <h2 class="panel-heading">HIGH SCORES — ${s.mode.toUpperCase()}</h2>
       <table class="scores">${this.scoreRows(s.mode)}</table>
       <div class="menu-list">
-        <button data-act="again">PLAY AGAIN ▶</button>
-        <button data-act="back">TITLE</button>
+        ${this.pipeBtn('PLAY AGAIN ▶', 'data-act="again"')}
+        ${this.pipeBtn('TITLE', 'data-act="back"')}
       </div>
     `);
     el.querySelector('[data-act=again]')!.addEventListener('click', () => {
@@ -603,7 +695,7 @@ export class App {
     const el = this.menu(`
       <h2 class="panel-heading">HIGH SCORES</h2>
       ${sections}
-      <div class="menu-list"><button data-act="back">TITLE</button></div>
+      <div class="menu-list">${this.pipeBtn('TITLE', 'data-act="back"')}</div>
     `);
     el.querySelector('[data-act=back]')!.addEventListener('click', () => this.showTitle());
   }
@@ -615,10 +707,10 @@ export class App {
     const el = this.menu(`
       <h2 class="panel-heading">OPTIONS</h2>
       <div class="menu-list">
-        <button data-act="music">MUSIC VOLUME: ${Math.round(settings.musicVol * 100)}%</button>
-        <button data-act="sfx">SFX VOLUME: ${Math.round(settings.sfxVol * 100)}%</button>
-        <button data-act="gfx">GRAPHICS: ${(settings.renderMode ?? 'smooth').toUpperCase()}</button>
-        <button data-act="back">BACK</button>
+        ${this.pipeBtn(`MUSIC VOLUME: ${Math.round(settings.musicVol * 100)}%`, 'data-act="music"')}
+        ${this.pipeBtn(`SFX VOLUME: ${Math.round(settings.sfxVol * 100)}%`, 'data-act="sfx"')}
+        ${this.pipeBtn(`GRAPHICS: ${(settings.renderMode ?? 'smooth').toUpperCase()}`, 'data-act="gfx"')}
+        ${this.pipeBtn('BACK', 'data-act="back"')}
       </div>
     `);
     el.querySelector('[data-act=gfx]')!.addEventListener('click', (ev) => {
@@ -627,20 +719,20 @@ export class App {
       this.renderer.setRenderMode(mode);
       this.applyScanlines();
       this.sfx.play('menu');
-      (ev.target as HTMLElement).textContent = `GRAPHICS: ${mode.toUpperCase()}`;
+      this.setPipeLabel((ev.currentTarget as HTMLElement), `GRAPHICS: ${mode.toUpperCase()}`);
     });
     el.querySelector('[data-act=music]')!.addEventListener('click', (ev) => {
       const v = (Math.round(getSettings().musicVol * 100) + 20) % 120;
       saveSettings({ musicVol: v / 100 });
       this.music.setVolume(v / 100);
-      (ev.target as HTMLElement).textContent = `MUSIC VOLUME: ${v}%`;
+      this.setPipeLabel((ev.currentTarget as HTMLElement), `MUSIC VOLUME: ${v}%`);
     });
     el.querySelector('[data-act=sfx]')!.addEventListener('click', (ev) => {
       const v = (Math.round(getSettings().sfxVol * 100) + 20) % 120;
       saveSettings({ sfxVol: v / 100 });
       this.sfx.setVolume(v / 100);
       this.sfx.play('menu');
-      (ev.target as HTMLElement).textContent = `SFX VOLUME: ${v}%`;
+      this.setPipeLabel((ev.currentTarget as HTMLElement), `SFX VOLUME: ${v}%`);
     });
     el.querySelector('[data-act=back]')!.addEventListener('click', () => this.showTitle());
   }
