@@ -57,6 +57,9 @@ export class PlayingScreen {
   private predictionsAt = -1000;
   /** Plumber excitement level, refreshed with the predictions. */
   private mood = 0;
+  /** Debounce for ±1 mood drifts (queue churn flaps the modifiers). */
+  private moodPending = -1;
+  private moodHeld = 0;
   /** Assist overlay: visualize the forward path finder (checkbox or G). */
   private assist: boolean;
 
@@ -292,7 +295,25 @@ export class PlayingScreen {
     if (this.renderTime - this.predictionsAt > 250) {
       this.predictionsAt = this.renderTime;
       if (round.easyQueue) this.predictions = round.predictedKinds(3);
-      this.mood = round.panicLevel();
+      // Sim-tuned debounce: escalations to the frantic tiers (and any
+      // 2+ level jump) show instantly so spills stay telegraphed, but
+      // ±1 drifts must persist ~1s — queue churn flaps the modifiers
+      // at the placement cadence otherwise (15.8 -> 4.6 flips/min).
+      const target = round.panicLevel();
+      if (target === this.mood) {
+        this.moodPending = -1;
+      } else if (target >= 4 || Math.abs(target - this.mood) >= 2) {
+        this.mood = target;
+        this.moodPending = -1;
+      } else if (target === this.moodPending) {
+        if (++this.moodHeld >= 4) {
+          this.mood = target;
+          this.moodPending = -1;
+        }
+      } else {
+        this.moodPending = target;
+        this.moodHeld = 1;
+      }
     }
     r.drawDispensers(
       round.queues,

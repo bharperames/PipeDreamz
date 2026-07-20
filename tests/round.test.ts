@@ -63,6 +63,14 @@ describe('plumber panic level', () => {
     expect(lost.panicLevel()).toBe(6);
   });
 
+  it('is never fully placid while the flooz is flowing', () => {
+    const round = makeTestRound(makeLevel({ delayMs: 50, fillMs: 5000, distance: 3 }));
+    for (let x = 2; x <= 9; x++) lay(round, x, 3, 'H'); // ~40s of runway
+    run(round, 200); // countdown elapses, flow begins
+    expect(round.flow.state).toBe('flowing');
+    expect(round.panicLevel()).toBeGreaterThanOrEqual(1);
+  });
+
   it('is calm after a winning round, even though the flooz spilled', () => {
     const round = makeTestRound(makeLevel({ distance: 2 }));
     lay(round, 2, 3, 'H');

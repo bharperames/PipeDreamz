@@ -1,4 +1,4 @@
-import { FlowSim, FlowTickEvent } from './flow';
+import { FAST_FILL_MS, FlowSim, FlowTickEvent } from './flow';
 import { Grid } from './grid';
 import { channelExit, findChannel } from './pieces';
 import { BiasProvider, DEFAULT_WEIGHTS, DispenserQueue } from './queue';
@@ -237,13 +237,14 @@ export class GameRound {
    */
   panicLevel(): number {
     if (this.over) return this.result?.won ? 0 : 6;
-    if (this.distanceMet && (!this.level.requireEndPiece || this.reachedEnd)) return 0;
 
     const walk = this.walkPipeline();
     const fill = this.level.fillMs * this.flow.easeFactor;
     // Guaranteed-safe time: pipes already connected ahead of the head,
     // plus the rest of the current segment (or the pre-flow countdown).
-    let msLeft = Math.max(0, walk.path.length - 1) * fill;
+    // Under fast-forward the future pipes drain at the fast rate too.
+    const perPipe = this.flow.fastForward ? Math.min(fill, FAST_FILL_MS) : fill;
+    let msLeft = Math.max(0, walk.path.length - 1) * perPipe;
     if (this.flow.state === 'countdown') {
       msLeft += Math.max(0, this.flow.countdownMs);
     } else {
@@ -251,12 +252,16 @@ export class GameRound {
     }
 
     let level: number;
-    if (msLeft > 15000) level = 0;
-    else if (msLeft > 10000) level = 1;
-    else if (msLeft > 6500) level = 2;
-    else if (msLeft > 4000) level = 3;
+    if (msLeft > 18000) level = 0;
+    else if (msLeft > 12000) level = 1;
+    else if (msLeft > 7500) level = 2;
+    else if (msLeft > 4500) level = 3;
     else if (msLeft > 2000) level = 4;
     else level = 5;
+    // Once the flooz is moving he is never fully placid — the frantic
+    // tiers stay reserved for imminent spills, but the mid-range
+    // engages: safety is temporary, the flooz keeps coming.
+    if (this.flow.state === 'flowing') level = Math.max(level, 1);
 
     // Escape odds.
     if (walk.deadEnd) {
@@ -275,6 +280,22 @@ export class GameRound {
     let used = 0;
     this.grid.forEach(() => used++);
     if (used / (this.level.gridW * this.level.gridH) > 0.8) level += 1; // nearly full board
+
+    // The pipeline already runs into the END tank: the flooz closing
+    // in is triumph, not danger — anticipation, never hysteria.
+    const last = walk.path[walk.path.length - 1];
+    const endsAtEnd =
+      !walk.gap && !walk.deadEnd && last !== undefined && this.grid.get(last)?.kind === 'END';
+    if (endsAtEnd && this.distanceMet) level = Math.min(level, 2);
+
+    // Quota met and nothing more required: the win is assured, so he
+    // relaxes a tier and never goes frantic — but he still tracks the
+    // flooz racing toward the end of the line. If the player is
+    // fast-forwarding a won round, he's just cashing in: nearly calm.
+    if (this.distanceMet && (!this.level.requireEndPiece || this.reachedEnd)) {
+      level = Math.min(level - 1, 3);
+      if (this.flow.fastForward) level = Math.min(level, 1);
+    }
 
     return Math.max(0, Math.min(5, level));
   }

@@ -333,6 +333,80 @@ button.pipe-btn,
   color: var(--green);
 }
 
+/* How-to-play page: fixed compact width, fully opaque, readable type. */
+.panel.panel-howto {
+  background: #0d1013;
+  width: min(720px, 94vw);
+  min-width: 0;
+  padding: 20px 28px 22px;
+}
+
+.panel-howto .panel-heading {
+  font-size: 26px;
+  margin: 0 0 8px;
+}
+
+.panel-howto .menu-list {
+  margin-top: 10px;
+}
+
+.howto {
+  max-height: 64vh;
+  overflow-y: auto;
+  text-align: left;
+  font-size: 15px;
+  padding: 0 10px 2px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #b6834b #14181c;
+}
+
+.howto p {
+  color: #c4cfc4;
+  line-height: 1.55;
+  margin: 4px 0 6px;
+}
+
+.howto-h {
+  margin: 14px 0 4px;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #dfaf6e;
+  border-bottom: 1px solid rgba(182, 131, 75, 0.4);
+  padding-bottom: 3px;
+}
+
+.howto-h:first-child {
+  margin-top: 0;
+}
+
+.howto-keys {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.howto-keys td {
+  padding: 2px 8px 2px 0;
+  color: #aab5bf;
+  line-height: 1.45;
+  vertical-align: top;
+}
+
+.howto-keys td:first-child {
+  color: #ffe49c;
+  white-space: nowrap;
+  width: 44%;
+}
+
+.howto-keys tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.howto .menu-note {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
 .scores-mode {
   margin-top: 14px;
   font-size: 13px;

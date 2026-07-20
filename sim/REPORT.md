@@ -206,6 +206,48 @@ neutral-to-up. Bots are decision-budget-limited, so human players (who
 benefit from *time per decision*, not just decision count) should feel
 a larger effect than the simulation shows.
 
+## 6e. Addendum — plumber mood tuning (shipped)
+
+The plumber's excitement level (0 calm .. 5 freaking out, 6 defeated)
+was tuned with a dedicated telemetry harness (`sim/mood.test.ts`):
+panicLevel() sampled every 250ms across 1,200 bot games, scored against
+four properties — **tension is honest** (losing games end frantic),
+**healthy play isn't frantic**, **he isn't a statue** (no mood
+dominates; post-quota stays engaged), and **no strobing**.
+
+Shipped tuning (validated at 300 games/cell):
+
+| Metric | L1 easy | L1 normal | L5 easy | L21 route |
+|---|---|---|---|---|
+| frantic ≥4 at 1s before a losing spill | 100% | 100% | 100% | 100% |
+| concern ≥3 at 2.5s before | 100% | 100% | 100% | 100% |
+| healthy-play frantic share | 2.1% | 4.7% | 4.2% | 1.5% |
+| post-quota frantic share | 0% | 0% | 0% | 44%* |
+| max single-mood time-share | 34% | 39% | 29% | 47% |
+| flips/min (displayed) | 0.2 | 0.4 | 0.8 | 4.6 |
+
+\* L21 requires the END tank: quota met ≠ safe, so late frantic there is
+honest tension, not a defect.
+
+Findings that shaped the rules:
+1. **Fast-forward needed its own math** — runway was priced at normal
+   fill speed while the current segment drained at 80ms, so cashing in
+   a won round read as "2 seconds to doom" (hysteria). Runway now uses
+   the fast rate, and a won round being fast-forwarded caps at 1.
+2. **The END-run is triumph, not danger** — a pipeline that already
+   runs into the END tank caps at 2 (anticipation) once the quota is
+   met; previously the shrinking runway pinned him at 5 while winning.
+3. **Quota relief, not sedation** — quota-met used to hard-return calm
+   (player report: "calm even at the end"); now it relaxes one tier and
+   caps at 3, so he still tracks the flooz.
+4. **Queue churn strobes the modifiers** — the ±1 "rescue piece in
+   hand" relief flaps at the placement cadence (raw 15.8 flips/min on
+   route play). The UI debounces ±1 drifts for ~1s; escalations to the
+   frantic tiers apply instantly so spills stay telegraphed (100% in
+   every cell above).
+
+Reproduce: `RUN_SIM=1 npx vitest run sim/mood.test.ts --config vitest.sim.config.ts`
+
 ## 7. Reproducing
 
 ```sh

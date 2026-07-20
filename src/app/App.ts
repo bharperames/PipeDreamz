@@ -147,8 +147,8 @@ export class App {
     this.screen = null;
   }
 
-  private menu(html: string): HTMLElement {
-    this.menuRoot.innerHTML = `<div class="panel">${html}</div>`;
+  private menu(html: string, panelClass = ''): HTMLElement {
+    this.menuRoot.innerHTML = `<div class="panel${panelClass ? ' ' + panelClass : ''}">${html}</div>`;
     this.menuRoot.classList.add('visible');
     return this.menuRoot;
   }
@@ -271,6 +271,7 @@ export class App {
         <a data-act="easy" class="opt-toggle">EASY QUEUE: ${this.prefEasy ? 'ON' : 'OFF'}</a>
       </div>
       <div class="menu-secondary">
+        <a data-act="howto">how to play</a> ·
         <a data-act="modes">modes</a> ·
         <a data-act="scores">high scores</a> ·
         <a data-act="settings">options</a>
@@ -302,6 +303,76 @@ export class App {
     el.querySelector('[data-act=settings]')!.addEventListener('click', () => {
       this.sfx.play('menu');
       this.showSettings();
+    });
+    el.querySelector('[data-act=howto]')!.addEventListener('click', () => {
+      this.sfx.play('menu');
+      this.showHowTo();
+    });
+  }
+
+  // ---------- how to play ----------
+
+  private showHowTo(): void {
+    this.clearScreen();
+    const el = this.menu(
+      `
+      <h2 class="panel-heading">HOW TO PLAY</h2>
+      <div class="howto">
+        <div class="howto-h">THE POINT</div>
+        <p>Build an unbroken pipeline from the START tank before the flooz
+        starts flowing — then stay ahead of it. Guide the flooz through at
+        least the number of pipes on the <b>D</b> readout to clear the level;
+        some levels also demand the pipeline reach the END tank. If the flooz
+        hits a gap, an obstacle, or the board edge, it spills and the round
+        is over. You can't rotate pieces — you must place the dispenser's
+        bottom piece, so plan ahead using the queue.</p>
+
+        <div class="howto-h">CONTROLS — COMPUTER</div>
+        <table class="howto-keys">
+          <tr><td>Mouse / arrow keys</td><td>aim the cursor</td></tr>
+          <tr><td>Click / SPACE</td><td>place the next piece</td></tr>
+          <tr><td>Click a placed pipe</td><td>replace it (−50; unfilled pipes only)</td></tr>
+          <tr><td>F</td><td>fast-forward the flooz — every pipe scores double</td></tr>
+          <tr><td>G</td><td>assist overlay on/off</td></tr>
+          <tr><td>P</td><td>pause</td></tr>
+          <tr><td>ESC</td><td>quit to title</td></tr>
+          <tr><td>SHIFT-click / right-click</td><td>expert mode: place from the second dispenser</td></tr>
+          <tr><td>WASD + Q</td><td>player 2 cursor and place (competitive)</td></tr>
+        </table>
+
+        <div class="howto-h">CONTROLS — IPAD &amp; TOUCH</div>
+        <table class="howto-keys">
+          <tr><td>Tap a square</td><td>place the next piece there</td></tr>
+          <tr><td>Tap EASY / ASSIST / ♪</td><td>toggle the easy queue, assist overlay, music</td></tr>
+          <tr><td>Bonus round: tap a column</td><td>drop the piece into its lowest open space</td></tr>
+        </table>
+
+        <div class="howto-h">SCORING</div>
+        <table class="howto-keys">
+          <tr><td>Pipe filled</td><td>50 — or 100 once the quota is met</td></tr>
+          <tr><td>Flooz crosses itself in a cross pipe</td><td>+500</td></tr>
+          <tr><td>Looping BOTH sides of 5 crosses</td><td>+5000</td></tr>
+          <tr><td>Bonus / reservoir pipe</td><td>500 — or 1000 after the quota</td></tr>
+          <tr><td>Reaching the END tank</td><td>+1000</td></tr>
+          <tr><td>Flooz through EVERY square</td><td>+10000</td></tr>
+          <tr><td>Fast-forward</td><td>×2 per pipe</td></tr>
+          <tr><td>Expert: alternating dispensers</td><td>+100 per pipe</td></tr>
+          <tr><td>Replacing a pipe</td><td>−50</td></tr>
+          <tr><td>Each unused pipe at round end</td><td>−100</td></tr>
+          <tr><td>Bonus round (every 4th level)</td><td>100 per pipe, no penalties</td></tr>
+        </table>
+
+        <div class="menu-note">EASY QUEUE biases the dispenser toward pieces your
+        pipeline needs and eases the flow a little. ASSIST traces the path the
+        flooz will take and ghosts the piece that would prevent the spill.</div>
+      </div>
+      <div class="menu-list">${this.pipeBtn('BACK', 'data-act="back"')}</div>
+    `,
+      'panel-howto',
+    );
+    el.querySelector('[data-act=back]')!.addEventListener('click', () => {
+      this.sfx.play('menu');
+      this.showTitle();
     });
   }
 
