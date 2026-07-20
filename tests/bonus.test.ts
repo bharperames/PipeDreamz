@@ -11,42 +11,42 @@ function runBonus(bonus: BonusRound, ms: number) {
   return events;
 }
 
-describe('bonus round', () => {
-  it('generates a full board with one hole and a start piece', () => {
+describe('bonus round (Connect-4 drop)', () => {
+  it('starts with an empty board, a tank in the bottom-left, and a queue', () => {
     const bonus = new BonusRound(mulberry32(9));
-    let empty = 0;
     let pieces = 0;
     for (let y = 0; y < 7; y++) {
-      for (let x = 0; x < 10; x++) {
-        const p = bonus.grid.get({ x, y });
-        if (!p) empty++;
-        else pieces++;
-      }
+      for (let x = 0; x < 10; x++) if (bonus.grid.get({ x, y })) pieces++;
     }
-    expect(empty).toBe(1);
-    expect(pieces).toBe(69);
-    expect(bonus.grid.get(bonus.level.start.pos)!.kind).toBe('START');
+    expect(pieces).toBe(1);
+    expect(bonus.grid.get({ x: 0, y: 6 })!.kind).toBe('START');
+    expect(bonus.queue.peek().length).toBe(5);
   });
 
-  it('slides only pieces adjacent to the hole', () => {
+  it('drops land in the lowest open space and stack upward', () => {
     const bonus = new BonusRound(mulberry32(9));
-    const hole = { ...bonus.hole };
-    const from = { x: hole.x - 1, y: hole.y };
-    const kind = bonus.grid.get(from)!.kind;
-    expect(bonus.slide(from).length).toBe(1);
-    expect(bonus.grid.get(hole)!.kind).toBe(kind);
-    expect(bonus.grid.get(from)).toBeNull();
-    expect(bonus.hole).toEqual(from);
-    // Non-adjacent slide rejected
-    expect(bonus.slide({ x: 0, y: 0 }).length).toBe(0);
+    const k1 = bonus.queue.next();
+    expect(bonus.drop(3)).toMatchObject([{ type: 'dropped', pos: { x: 3, y: 6 }, kind: k1 }]);
+    const k2 = bonus.queue.next();
+    expect(bonus.drop(3)).toMatchObject([{ type: 'dropped', pos: { x: 3, y: 5 }, kind: k2 }]);
+    // Column 0 stacks on top of the fixed START.
+    expect(bonus.drop(0)).toMatchObject([{ type: 'dropped', pos: { x: 0, y: 5 } }]);
   });
 
-  it('cannot slide the start piece', () => {
-    const bonus = new BonusRound(mulberry32(1));
-    // Move the hole next to the start by force
-    bonus.hole = { x: bonus.level.start.pos.x + 1, y: bonus.level.start.pos.y };
-    bonus.grid.set(bonus.hole, null);
-    expect(bonus.slide(bonus.level.start.pos).length).toBe(0);
+  it('rejects drops into a full column and out-of-range columns', () => {
+    const bonus = new BonusRound(mulberry32(9));
+    for (let i = 0; i < 7; i++) bonus.drop(4);
+    expect(bonus.landing(4)).toBeNull();
+    expect(bonus.drop(4).length).toBe(0);
+    expect(bonus.drop(-1).length).toBe(0);
+    expect(bonus.drop(10).length).toBe(0);
+  });
+
+  it('rejects drops once the flow phase begins', () => {
+    const bonus = new BonusRound(mulberry32(9));
+    bonus.startFlow();
+    runBonus(bonus, 100);
+    expect(bonus.drop(3).length).toBe(0);
   });
 
   it('flows after the timer and scores 100 per pipe with no loss', () => {

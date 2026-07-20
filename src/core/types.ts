@@ -129,6 +129,8 @@ export type GameEvent =
       pipesFilled: number;
     }
   | { type: 'crossCompleted'; pos: GridPos; points: number }
+  | { type: 'loopBonus'; pos: GridPos; points: number; crosses: number }
+  | { type: 'fullBoard'; pos: GridPos; points: number }
   | { type: 'flowStarted' }
   | { type: 'distanceMet' }
   | { type: 'endReached'; pos: GridPos; points: number }

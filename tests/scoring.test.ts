@@ -111,3 +111,57 @@ describe('competitive scoring', () => {
     expect(round.scores[1]).toBe(50);
   });
 });
+
+describe('original-manual feats', () => {
+  it('awards the 5-cross loop bonus once, on the 5th double-passed cross', () => {
+    // Horizontal pass through 5 crosses, then a weave that descends and
+    // climbs back through each cross vertically (both channels filled).
+    const round = makeTestRound(makeLevel({ delayMs: 50, distance: 3 }));
+    for (let x = 2; x <= 6; x++) lay(round, x, 3, 'X');
+    lay(round, 7, 3, 'NW');
+    lay(round, 7, 2, 'SW');
+    lay(round, 6, 2, 'SE');
+    lay(round, 6, 4, 'NW');
+    lay(round, 5, 4, 'NE');
+    lay(round, 5, 2, 'SW');
+    lay(round, 4, 2, 'SE');
+    lay(round, 4, 4, 'NW');
+    lay(round, 3, 4, 'NE');
+    lay(round, 3, 2, 'SW');
+    lay(round, 2, 2, 'SE');
+    round.apply({ type: 'fastForward', player: 0 });
+    const events = run(round, 60000);
+    const loops = events.filter((e) => e.type === 'loopBonus');
+    expect(loops.length).toBe(1);
+    expect(loops[0]).toMatchObject({ points: SCORE.crossLoop, crosses: 5 });
+    expect(events.filter((e) => e.type === 'crossCompleted').length).toBe(5);
+  });
+
+  it('awards the full-board bonus when every square is swept', () => {
+    // 4x3 board, serpentine through all 12 cells ending at the far wall.
+    const level = makeLevel({
+      gridW: 4,
+      gridH: 3,
+      delayMs: 50,
+      distance: 3,
+      start: { pos: { x: 0, y: 0 }, exit: 1 },
+    });
+    const round = makeTestRound(level);
+    lay(round, 1, 0, 'H');
+    lay(round, 2, 0, 'H');
+    lay(round, 3, 0, 'SW');
+    lay(round, 3, 1, 'NW');
+    lay(round, 2, 1, 'H');
+    lay(round, 1, 1, 'H');
+    lay(round, 0, 1, 'SE');
+    lay(round, 0, 2, 'NE');
+    lay(round, 1, 2, 'H');
+    lay(round, 2, 2, 'H');
+    lay(round, 3, 2, 'H');
+    round.apply({ type: 'fastForward', player: 0 });
+    const events = run(round, 60000);
+    const full = events.filter((e) => e.type === 'fullBoard');
+    expect(full.length).toBe(1);
+    expect(full[0]).toMatchObject({ points: SCORE.fullBoard });
+  });
+});

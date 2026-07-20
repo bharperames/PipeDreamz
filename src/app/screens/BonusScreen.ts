@@ -8,6 +8,11 @@ import { GridPos } from '../../core/types';
 
 const SIM_DT = 1000 / 120;
 
+/**
+ * Bonus round: Connect-4 style. Click a column to drop the next
+ * dispenser piece into its lowest open space; after the timer (or F),
+ * the flooz pours from the bottom-left tank.
+ */
 export class BonusScreen {
   readonly bonus: BonusRound;
   private cursorCell: GridPos = { x: 5, y: 3 };
@@ -42,7 +47,7 @@ export class BonusScreen {
   onMouseDown(e: MouseEvent): void {
     const cell = this.renderer.screenToCell(e.clientX, e.clientY);
     if (!this.bonus.grid.inBounds(cell)) return;
-    if (this.bonus.slide(cell).length) this.sfx.play('slide');
+    if (this.bonus.drop(cell.x).length) this.sfx.play('place');
   }
 
   update(dtMs: number): void {
@@ -105,15 +110,17 @@ export class BonusScreen {
     }
 
     if (this.bonus.phase === 'arrange') {
-      const adjacent =
-        Math.abs(this.cursorCell.x - this.bonus.hole.x) +
-          Math.abs(this.cursorCell.y - this.bonus.hole.y) ===
-        1;
-      const piece = this.bonus.grid.get(this.cursorCell);
-      r.drawCursorAt(this.cursorCell.x, this.cursorCell.y, adjacent && !!piece && !piece.fixed);
-      // Mark the hole
-      r.drawCursorAt(this.bonus.hole.x, this.bonus.hole.y, true, PAL.gold);
+      // The hovered column's landing cell, marked gold; full columns red.
+      const landing = this.bonus.landing(this.cursorCell.x);
+      if (landing) {
+        r.drawCursorAt(landing.x, landing.y, true, PAL.gold);
+      } else {
+        r.drawCursorAt(this.cursorCell.x, 0, false);
+      }
     }
+
+    // The dispenser rack shows what drops next; the plumber just watches.
+    r.drawDispensers([this.bonus.queue], undefined, undefined, 1);
 
     r.updateOverlays(dtMs);
     r.drawHud({

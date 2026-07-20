@@ -13,6 +13,16 @@ export const SCORE = {
   unusedPipePenalty: -100,
   expertAlternation: 100,
   fastForwardMultiplier: 2,
+  /**
+   * Looping the flooz through BOTH channels of at least 5 cross pieces
+   * (documented original feat; value is our tuning — awarded once).
+   */
+  crossLoop: 5000,
+  /**
+   * Passing the flooz through every square on the board (documented
+   * original feat; value is our tuning — awarded once).
+   */
+  fullBoard: 10000,
 } as const;
 
 export interface FillScoreInput {

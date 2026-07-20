@@ -278,7 +278,7 @@ button.pipe-btn,
 .pipe-btn-text {
   font-family: 'Courier New', Courier, monospace;
   font-weight: bold;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   fill: #55ff66;
   text-anchor: middle;
   dominant-baseline: central;

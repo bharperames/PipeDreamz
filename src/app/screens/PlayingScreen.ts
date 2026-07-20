@@ -55,6 +55,8 @@ export class PlayingScreen {
   private replayCursor = 0;
   private predictions: PlaceableKind[] = [];
   private predictionsAt = -1000;
+  /** Plumber excitement level, refreshed with the predictions. */
+  private mood = 0;
   /** Assist overlay: visualize the forward path finder (checkbox or G). */
   private assist: boolean;
 
@@ -286,16 +288,17 @@ export class PlayingScreen {
       r.drawCursorAt(cell.x, cell.y, valid, p === 0 ? PAL.white : '#7db6f0');
     });
 
-    // Throttled prediction preview for the baking slots (easy mode).
-    if (round.easyQueue && this.renderTime - this.predictionsAt > 250) {
+    // Throttled prediction preview + plumber mood (both read the solver).
+    if (this.renderTime - this.predictionsAt > 250) {
       this.predictionsAt = this.renderTime;
-      this.predictions = round.predictedKinds(3);
+      if (round.easyQueue) this.predictions = round.predictedKinds(3);
+      this.mood = round.panicLevel();
     }
     r.drawDispensers(
       round.queues,
       round.easyQueue,
       round.easyQueue ? this.predictions : undefined,
-      this.assist,
+      this.mood,
     );
     r.updateOverlays(dtMs);
 
@@ -311,6 +314,7 @@ export class PlayingScreen {
       paused: this.paused,
       fastFlow: round.flow.fastForward,
       musicOn: this.callbacks.musicOn?.(),
+      assist: this.assist,
       replay: this.replay !== undefined,
     });
     r.present();
@@ -355,6 +359,14 @@ export class PlayingScreen {
         case 'crossCompleted':
           this.sfx.play('cross');
           this.renderer.addPopup(e.pos, `+${e.points}`, 'big');
+          break;
+        case 'loopBonus':
+          this.sfx.play('end');
+          this.renderer.addPopup(e.pos, `${e.crosses}-LOOP! +${e.points}`, 'big');
+          break;
+        case 'fullBoard':
+          this.sfx.play('end');
+          this.renderer.addPopup(e.pos, `FULL BOARD! +${e.points}`, 'big');
           break;
         case 'distanceMet':
           this.sfx.play('distance');

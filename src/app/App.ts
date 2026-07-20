@@ -160,14 +160,16 @@ export class App {
    * 'data-act="start"'.
    */
   private pipeBtn(label: string, attrs: string, primary = false): string {
-    const fs = primary ? 26 : 19;
-    const est = label.length * fs * 0.62 + (label.length - 1) * 4;
-    const fit = est > 246 ? ' textLength="246" lengthAdjust="spacingAndGlyphs"' : '';
+    // No viewBox: the SVG uses the button's own pixel space, so text
+    // renders at natural proportions no matter the button width (a
+    // stretched viewBox squished the glyphs). Caps are fixed-pixel,
+    // spans are percentages.
+    const fs = primary ? 21 : 15;
     const text = (cls: string, glow: boolean) =>
-      `<text x="200" y="52" class="pipe-btn-text${cls}"${glow ? ' filter="url(#pbGlow)"' : ''} font-size="${fs}"${fit}>${label}</text>`;
+      `<text x="50%" y="53%" class="pipe-btn-text${cls}"${glow ? ' filter="url(#pbGlow)"' : ''} font-size="${fs}">${label}</text>`;
     return `
       <button class="pipe-btn${primary ? ' primary' : ''}" ${attrs}>
-        <svg viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true">
+        <svg width="100%" height="100%" aria-hidden="true">
           <defs>
             <linearGradient id="pbBrass" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stop-color="#5a3d0d"/><stop offset=".15" stop-color="#b8862d"/>
@@ -194,18 +196,18 @@ export class App {
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
           </defs>
-          <rect x="50" y="25" width="300" height="50" rx="4" fill="url(#pbPipe)" stroke="#111" stroke-width="2"/>
-          <rect x="36" y="15" width="14" height="70" rx="2" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
-          <rect x="50" y="20" width="8" height="60" rx="1" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
-          <rect x="350" y="15" width="14" height="70" rx="2" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
-          <rect x="342" y="20" width="8" height="60" rx="1" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
-          <rect x="68" y="28" width="264" height="44" rx="6" fill="url(#pbBrass)" stroke="#1a1a1a" stroke-width="2"/>
-          <rect x="72" y="32" width="256" height="36" rx="4" fill="url(#pbGlassBg)" stroke="#000" stroke-width="1.5"/>
+          <rect x="10" y="25%" width="100%" height="50%" rx="4" fill="url(#pbPipe)" stroke="#111" stroke-width="2"/>
+          <rect x="2" y="15%" width="12" height="70%" rx="2" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
+          <rect x="14" y="20%" width="7" height="60%" rx="1" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
+          <rect x="100%" transform="translate(-14,0)" y="15%" width="12" height="70%" rx="2" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
+          <rect x="100%" transform="translate(-21,0)" y="20%" width="7" height="60%" rx="1" fill="url(#pbBrass)" stroke="#221100" stroke-width="1.5"/>
+          <rect x="8%" y="28%" width="84%" height="44%" rx="6" fill="url(#pbBrass)" stroke="#1a1a1a" stroke-width="2"/>
+          <rect x="8.8%" y="32%" width="82.4%" height="36%" rx="4" fill="url(#pbGlassBg)" stroke="#000" stroke-width="1.5"/>
           ${text('', true)}
           ${text(' top', false)}
-          <rect x="72" y="32" width="256" height="36" rx="4" fill="url(#pbGlare)" pointer-events="none"/>
-          <line x1="75" y1="34" x2="325" y2="34" stroke="#fff" stroke-opacity=".15" stroke-width="1.5"/>
-          <line x1="75" y1="66" x2="325" y2="66" stroke="#000" stroke-opacity=".4" stroke-width="1.5"/>
+          <rect x="8.8%" y="32%" width="82.4%" height="36%" rx="4" fill="url(#pbGlare)" pointer-events="none"/>
+          <line x1="9.5%" y1="34%" x2="90.5%" y2="34%" stroke="#fff" stroke-opacity=".15" stroke-width="1.5"/>
+          <line x1="9.5%" y1="66%" x2="90.5%" y2="66%" stroke="#000" stroke-opacity=".4" stroke-width="1.5"/>
         </svg>
       </button>`;
   }

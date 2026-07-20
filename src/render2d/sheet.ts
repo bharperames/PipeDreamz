@@ -17,7 +17,7 @@ export interface Rect {
   h: number;
 }
 
-export type SheetId = 'pipes' | 'filled' | 'ref' | 'lattice';
+export type SheetId = 'pipes' | 'filled' | 'ref' | 'lattice' | 'plumber';
 
 const images = new Map<SheetId, HTMLCanvasElement>();
 let ready = false;
@@ -38,17 +38,19 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 /** Load both sheets; resolves false (procedural fallback) on any failure. */
 export async function loadSheets(baseUrl: string): Promise<boolean> {
   try {
-    const [pipes, filled, ref, lattice] = await Promise.all([
+    const [pipes, filled, ref, lattice, plumber] = await Promise.all([
       loadImage(`${baseUrl}assets/pipes.jpg`),
       loadImage(`${baseUrl}assets/pipes_filled.jpg`),
       loadImage(`${baseUrl}assets/sheet.jpg`),
       loadImage(`${baseUrl}assets/lattice.png`),
+      loadImage(`${baseUrl}assets/plumber.jpeg`),
     ]);
     for (const [id, img] of [
       ['pipes', pipes],
       ['filled', filled],
       ['ref', ref],
       ['lattice', lattice],
+      ['plumber', plumber],
     ] as const) {
       const c = document.createElement('canvas');
       c.width = img.naturalWidth;
@@ -161,6 +163,8 @@ function sampleKeyColor(): { r: number; g: number; b: number } {
 export interface ExtractOpts {
   /** Make background-colored pixels transparent. */
   key?: boolean;
+  /** Chroma-key against the crop's own top-left pixel (its background). */
+  keySelf?: boolean;
   rotate?: 0 | 90 | 180 | 270;
   /** Chroma-key distance threshold (JPEG noise tolerance). */
   threshold?: number;
@@ -195,9 +199,16 @@ export function extract(
   crop.getContext('2d')!.drawImage(src, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
 
   // 2. chroma key
-  if (opts.key) {
-    const kc = sampleKeyColor();
-    const ctx = crop.getContext('2d')!;
+  if (opts.key || opts.keySelf) {
+    const cctx = crop.getContext('2d')!;
+    let kc: { r: number; g: number; b: number };
+    if (opts.keySelf) {
+      const d = cctx.getImageData(2, 2, 1, 1).data;
+      kc = { r: d[0]!, g: d[1]!, b: d[2]! };
+    } else {
+      kc = sampleKeyColor();
+    }
+    const ctx = cctx;
     const img = ctx.getImageData(0, 0, crop.width, crop.height);
     const t = opts.threshold ?? 52;
     const data = img.data;

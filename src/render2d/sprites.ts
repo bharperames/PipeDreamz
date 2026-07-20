@@ -1044,6 +1044,63 @@ export function drawFlooz(
 const heroBitmaps = new Map<number, HTMLCanvasElement>();
 
 /** Mascot at an arbitrary height so he can fit below the dispenser. */
+// ---------- plumber character: six levels of excitement ----------
+// The player's generated sheet is a 2x3 grid (1686x2528): calm,
+// curiosity, concern, panic, hysteria, freaking out. Captions sit in
+// the top ~95px of each cell, so crops start below them.
+
+const PLUMBER_SHEET = { w: 1686, h: 2528, cols: 2, rows: 3, padX: 55, padTop: 95, padBot: 20 };
+
+function plumberRect(mood: number) {
+  const s = PLUMBER_SHEET;
+  const cw = s.w / s.cols;
+  const ch = s.h / s.rows;
+  const col = mood % s.cols;
+  const row = Math.floor(mood / s.cols);
+  return {
+    x: Math.round(col * cw + s.padX),
+    y: Math.round(row * ch + s.padTop),
+    w: Math.round(cw - 2 * s.padX),
+    h: Math.round(ch - s.padTop - s.padBot),
+  };
+}
+
+const plumberBitmaps = new Map<string, HTMLCanvasElement>();
+
+/**
+ * The plumber at excitement level `mood` (0 calm .. 5 freaking out),
+ * anchored so his feet sit at y + h regardless of pose proportions.
+ */
+export function drawPlumber(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  h: number,
+  mood = 0,
+): void {
+  mood = Math.max(0, Math.min(5, Math.round(mood)));
+  if (!sheetsReady()) return drawMascot(g, x, y, h);
+  const r = plumberRect(mood);
+  const w = Math.round(h * (r.w / r.h));
+  const key = `${mood}:${h}:${QUALITY}`;
+  let c = plumberBitmaps.get(key);
+  if (!c) {
+    c = extract('plumber', r, w * QUALITY, h * QUALITY, {
+      keySelf: true,
+      threshold: 42,
+      smooth: QUALITY > 1,
+    });
+    plumberBitmaps.set(key, c);
+  }
+  g.drawImage(c, x, y, w, h);
+}
+
+/** Width the plumber will occupy for a given height (poses are ~square). */
+export function plumberWidth(h: number, mood = 0): number {
+  const r = plumberRect(Math.max(0, Math.min(5, Math.round(mood))));
+  return Math.round(h * (r.w / r.h));
+}
+
 export function drawMascot(g: CanvasRenderingContext2D, x: number, y: number, h = 96): void {
   if (sheetsReady()) {
     const w = Math.round(h * 0.63);

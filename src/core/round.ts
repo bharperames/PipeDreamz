@@ -102,6 +102,9 @@ export class GameRound {
   private meta = new Map<PlacedPiece, PieceMeta>();
   private lastFilledDispenser: 0 | 1 | null = null;
   private easyRefresh: boolean;
+  /** Crosses the flooz has passed through BOTH channels of. */
+  private crossesLooped = 0;
+  private fullBoardAwarded = false;
 
   constructor(config: GameRoundConfig, rng: Rng) {
     const scale = config.timeScale ?? 1;
@@ -219,6 +222,55 @@ export class GameRound {
     const walk = this.walkPipeline();
     if (!walk.gap) return null;
     return this.weightsForGap(walk.gap.pos, walk.gap.entry);
+  }
+
+  /**
+   * Plumber excitement, 0 (placid calm) .. 5 (freaking out). Driven by
+   * how close the flooz is to spilling — time left before it reaches
+   * the pipeline's first gap or dead end — adjusted by how likely the
+   * player is to escape: a rescue piece already in hand calms him, a
+   * doomed pipeline or a crowded board (fewer routing options) worries
+   * him further. Once the quota is met and nothing more is required,
+   * he relaxes for good.
+   */
+  panicLevel(): number {
+    if (this.over) return this.result?.won ? 0 : 5;
+    if (this.distanceMet && (!this.level.requireEndPiece || this.reachedEnd)) return 0;
+
+    const walk = this.walkPipeline();
+    const fill = this.level.fillMs * this.flow.easeFactor;
+    // Guaranteed-safe time: pipes already connected ahead of the head,
+    // plus the rest of the current segment (or the pre-flow countdown).
+    let msLeft = Math.max(0, walk.path.length - 1) * fill;
+    if (this.flow.state === 'countdown') {
+      msLeft += Math.max(0, this.flow.countdownMs);
+    } else {
+      msLeft += (1 - this.flow.segmentProgress()) * this.flow.segmentDurationMs();
+    }
+
+    let level: number;
+    if (msLeft > 20000) level = 0;
+    else if (msLeft > 12000) level = 1;
+    else if (msLeft > 8000) level = 2;
+    else if (msLeft > 5000) level = 3;
+    else if (msLeft > 2500) level = 4;
+    else level = 5;
+
+    // Escape odds.
+    if (walk.deadEnd) {
+      level += 1; // nothing fits — only a bomb can save this
+    } else if (walk.gap) {
+      const gap = walk.gap;
+      const inHand = this.queues.some((q) =>
+        q.peek().slice(0, 2).some((k) => findChannel(k, gap.entry) !== null),
+      );
+      if (inHand) level -= 1; // the rescue piece is already coming up
+    }
+    let used = 0;
+    this.grid.forEach(() => used++);
+    if (used / (this.level.gridW * this.level.gridH) > 0.7) level += 1; // crowded board
+
+    return Math.max(0, Math.min(5, level));
   }
 
   /**
@@ -408,6 +460,14 @@ export class GameRound {
           if (owner !== null) this.scores[owner] += p;
           else this.creditFixed(p);
           events.push({ type: 'crossCompleted', pos: fe.pos, points: p });
+          // Original feat: looping through both sides of 5 crosses.
+          this.crossesLooped++;
+          if (this.crossesLooped === 5) {
+            const lp = SCORE.crossLoop;
+            if (owner !== null) this.scores[owner] += lp;
+            else this.creditFixed(lp);
+            events.push({ type: 'loopBonus', pos: fe.pos, points: lp, crosses: 5 });
+          }
         }
         if (fe.pieceClass === 'end') {
           events.push({ type: 'endReached', pos: fe.pos, points: SCORE.endPiece });
@@ -415,6 +475,17 @@ export class GameRound {
         if (!this.distanceMet && this.flow.pipesFilled >= this.level.distance) {
           this.distanceMet = true;
           events.push({ type: 'distanceMet' });
+        }
+        // Original feat: flooz through every square (obstacles excepted).
+        if (!this.fullBoardAwarded && this.isBoardSwept()) {
+          this.fullBoardAwarded = true;
+          const bp = SCORE.fullBoard;
+          this.creditFixed(bp);
+          events.push({
+            type: 'fullBoard',
+            pos: { x: Math.floor(this.level.gridW / 2), y: Math.floor(this.level.gridH / 2) },
+            points: bp,
+          });
         }
         this.trackDispenser(piece);
         break;
@@ -427,6 +498,19 @@ export class GameRound {
         this.finish(events);
         break;
     }
+  }
+
+  /** Every square (obstacles excepted) holds a pipe the flooz has filled. */
+  private isBoardSwept(): boolean {
+    for (let y = 0; y < this.level.gridH; y++) {
+      for (let x = 0; x < this.level.gridW; x++) {
+        const piece = this.grid.get({ x, y });
+        if (!piece) return false;
+        if (piece.kind === 'OBSTACLE') continue;
+        if (!piece.channels.some((c) => c.filled)) return false;
+      }
+    }
+    return true;
   }
 
   private players2(): boolean {

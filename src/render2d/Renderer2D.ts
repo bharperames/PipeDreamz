@@ -4,10 +4,11 @@ import { Dir, GridPos, LevelDef, PlaceableKind } from '../core/types';
 import {
   CELL,
   drawFlooz,
-  drawMascot,
   drawPlate,
+  drawPlumber,
   PAL,
   pieceSprite,
+  plumberWidth,
   setRenderQuality,
 } from './sprites';
 import { extract, refDigitRect, sheetsReady } from './sheet';
@@ -51,6 +52,8 @@ export interface HudState {
   fastFlow: boolean;
   /** Draws the clickable music chip in the upper right when defined. */
   musicOn?: boolean;
+  /** Draws the clickable ASSIST checkbox in the HUD when defined. */
+  assist?: boolean;
   /** Instant-replay playback indicator. */
   replay?: boolean;
 }
@@ -210,10 +213,10 @@ export class Renderer2D {
     g.restore();
   }
 
-  /** Mascot at a board cell position, sized in cells (menu dressing). */
-  drawMascotAt(cellX: number, cellY: number, cellsHigh: number): void {
+  /** Plumber at a board cell position, sized in cells (menu dressing). */
+  drawMascotAt(cellX: number, cellY: number, cellsHigh: number, mood = 0): void {
     const o = this.cellOrigin(cellX, cellY);
-    drawMascot(this.g, o.x, o.y, cellsHigh * CELL);
+    drawPlumber(this.g, o.x, o.y, cellsHigh * CELL, mood);
   }
 
   /** Dashed rounded selection frame, like the original's cursor. */
@@ -281,9 +284,10 @@ export class Renderer2D {
         g.fillRect(mx, my, 14, 14);
         g.drawImage(pieceSprite(k), mx + 1, my + 1, 12, 12);
       });
-      // Pulsing frame marking the gap the solver is trying to fill.
-      const pulse = 0.55 + 0.35 * Math.sin(this.frameCount / 9);
-      g.strokeStyle = `rgba(110,235,140,${pulse.toFixed(3)})`;
+      // Pulsing frame marking where the leak will happen if unfilled —
+      // soft red, deliberately quieter than the white cursor.
+      const pulse = 0.35 + 0.25 * Math.sin(this.frameCount / 9);
+      g.strokeStyle = `rgba(225,120,105,${pulse.toFixed(3)})`;
       g.lineWidth = 3;
       g.setLineDash([5, 4]);
       g.strokeRect(o.x + 3, o.y + 3, CELL - 6, CELL - 6);
@@ -380,7 +384,7 @@ export class Renderer2D {
     queues: DispenserQueue[],
     easy?: boolean,
     predicted?: readonly PlaceableKind[],
-    assist?: boolean,
+    mood?: number,
   ): void {
     const g = this.g;
     const x = GAP;
@@ -388,12 +392,15 @@ export class Renderer2D {
     let firstBoxTop: number | null = null;
     const SLIDE_MS = 150;
     const FADE_MS = 240;
+    // Queue slots are drawn smaller than board cells so the plumber has
+    // room to emote below the rack (matching the original's layout).
+    const Q = 40;
     const now = performance.now();
     const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
     queues.forEach((q, qi) => {
       if (firstBoxTop === null) firstBoxTop = y;
-      const innerH = q.depth * (CELL + 4) + 8;
+      const innerH = q.depth * (Q + 4) + 8;
       const boxH = innerH + 16;
       // metal frame
       g.fillStyle = PAL.frameLo;
@@ -445,7 +452,7 @@ export class Renderer2D {
       anim.prevPredicted = predicted ?? null;
 
       const slideP = anim.slideStart ? Math.min(1, (now - anim.slideStart) / SLIDE_MS) : 1;
-      const slideOff = -(CELL + 4) * (1 - easeOut(slideP));
+      const slideOff = -(Q + 4) * (1 - easeOut(slideP));
 
       // Pieces are clipped to the rack interior so the new top piece
       // slides IN from above rather than popping.
@@ -454,8 +461,8 @@ export class Renderer2D {
       g.rect(x + 8, y + 8, LEFT_W - 16, innerH);
       g.clip();
       for (let i = 0; i < q.depth; i++) {
-        const sy = y + 8 + innerH - 4 - (i + 1) * (CELL + 4) + 4 + slideOff;
-        const sx = x + (LEFT_W - CELL) / 2;
+        const sy = y + 8 + innerH - 4 - (i + 1) * (Q + 4) + 4 + slideOff;
+        const sx = x + (LEFT_W - Q) / 2;
         const kind = items[i];
         if (!kind) continue;
         // Easy mode: far slots are still being decided against the live
@@ -468,19 +475,19 @@ export class Renderer2D {
             g.save();
             g.filter = 'blur(0.8px)';
             g.globalAlpha = 0.45;
-            g.drawImage(pieceSprite(guess), sx, sy, CELL, CELL);
+            g.drawImage(pieceSprite(guess), sx, sy, Q, Q);
             g.restore();
             g.save();
             g.font = `bold 13px 'Courier New', monospace`;
             g.textAlign = 'left';
             g.textBaseline = 'top';
             g.fillStyle = 'rgba(10,10,14,0.8)';
-            g.fillRect(sx + CELL - 13, sy + 1, 12, 14);
+            g.fillRect(sx + Q - 13, sy + 1, 12, 14);
             g.fillStyle = '#d8a94c';
-            g.fillText('?', sx + CELL - 10, sy + 2);
+            g.fillText('?', sx + Q - 10, sy + 2);
             g.restore();
           } else {
-            g.drawImage(this.placeholderSprite(), sx, sy, CELL, CELL);
+            g.drawImage(this.placeholderSprite(), sx, sy, Q, Q);
           }
           continue;
         }
@@ -494,22 +501,22 @@ export class Renderer2D {
         if (fade && p < 1) {
           g.globalAlpha = 1 - p;
           const old = fade.kind === null ? this.placeholderSprite() : pieceSprite(fade.kind);
-          g.drawImage(old, sx, sy, CELL, CELL);
+          g.drawImage(old, sx, sy, Q, Q);
         }
         g.globalAlpha = fade ? p : 1;
-        g.drawImage(pieceSprite(kind), sx, sy, CELL, CELL);
+        g.drawImage(pieceSprite(kind), sx, sy, Q, Q);
         g.restore();
       }
       g.restore();
 
       // Marker brackets around the (stationary) next-piece slot.
-      const my = y + 8 + innerH - 4 - (CELL + 4) + 4;
-      const mx = x + (LEFT_W - CELL) / 2;
+      const my = y + 8 + innerH - 4 - (Q + 4) + 4;
+      const mx = x + (LEFT_W - Q) / 2;
       g.fillStyle = PAL.ledYellow;
       g.fillRect(mx - 6, my, 4, 12);
-      g.fillRect(mx - 6, my + CELL - 12, 4, 12);
-      g.fillRect(mx + CELL + 2, my, 4, 12);
-      g.fillRect(mx + CELL + 2, my + CELL - 12, 4, 12);
+      g.fillRect(mx - 6, my + Q - 12, 4, 12);
+      g.fillRect(mx + Q + 2, my, 4, 12);
+      g.fillRect(mx + Q + 2, my + Q - 12, 4, 12);
 
       y += boxH + GAP;
     });
@@ -533,47 +540,13 @@ export class Renderer2D {
     } else {
       this.easySwitch = null;
     }
-    // Assist checkbox: toggles the path-finder overlay (tutorial-style
-    // aid, available in easy AND normal queue modes). Sits under the
-    // rack — skipped when the racks fill the column (expert's two
-    // dispensers), where the G key remains the toggle.
-    if (assist !== undefined && y + 16 <= this.bufH - 2) {
-      const tw = 64;
-      const tx = x + (LEFT_W - tw) / 2;
-      const ty = y;
-      g.fillStyle = PAL.black;
-      g.fillRect(tx - 2, ty - 2, tw + 4, 16);
-      g.fillStyle = assist ? '#12240f' : '#181c20';
-      g.fillRect(tx, ty, tw, 12);
-      g.strokeStyle = assist ? PAL.flooz : '#4c5258';
-      g.lineWidth = 1;
-      g.strokeRect(tx + 0.5, ty + 0.5, tw - 1, 11);
-      // checkbox square
-      g.strokeStyle = assist ? PAL.floozHi : '#8a949e';
-      g.strokeRect(tx + 3.5, ty + 2.5, 7, 7);
-      if (assist) {
-        g.strokeStyle = PAL.floozHi;
-        g.beginPath();
-        g.moveTo(tx + 5, ty + 6);
-        g.lineTo(tx + 7, ty + 8);
-        g.lineTo(tx + 12, ty + 2);
-        g.stroke();
-      }
-      g.font = `bold 9px 'Courier New', monospace`;
-      g.textBaseline = 'top';
-      g.fillStyle = assist ? PAL.floozHi : '#8a949e';
-      g.fillText('ASSIST', tx + 14, ty + 2);
-      this.assistSwitch = { x: tx - 2, y: ty - 2, w: tw + 4, h: 16 };
-      y += 18;
-    } else {
-      this.assistSwitch = null;
-    }
-    // Mascot stands in the leftover space BELOW the dispenser box so he
-    // never covers the next-piece slot.
-    if (queues.length === 1) {
+    // The plumber reacts to the round below the rack (mood 0 calm .. 5
+    // freaking out), sized to fill the leftover column space.
+    if (queues.length === 1 && mood !== undefined) {
       const h = this.bufH - y - 4;
-      if (h >= 26) {
-        drawMascot(g, x + Math.round((LEFT_W - h * 0.63) / 2), y, h);
+      if (h >= 40) {
+        const w = plumberWidth(h, mood);
+        drawPlumber(g, x + Math.round((LEFT_W - w) / 2), y, h, mood);
       }
     }
   }
@@ -709,6 +682,37 @@ export class Renderer2D {
       rightEdge = mx - 14;
     } else {
       this.musicSwitch = null;
+    }
+    // ASSIST checkbox chip, left of the music chip.
+    if (s.assist !== undefined) {
+      const aw = 74;
+      const ax = rightEdge - aw;
+      const ay = 8;
+      g.fillStyle = PAL.black;
+      g.fillRect(ax - 2, ay - 2, aw + 4, 28);
+      g.fillStyle = s.assist ? '#12240f' : '#181c20';
+      g.fillRect(ax, ay, aw, 24);
+      g.strokeStyle = s.assist ? PAL.flooz : '#4c5258';
+      g.lineWidth = 2;
+      g.strokeRect(ax + 1, ay + 1, aw - 2, 22);
+      g.strokeStyle = s.assist ? PAL.floozHi : '#8a949e';
+      g.lineWidth = 1.5;
+      g.strokeRect(ax + 5.5, ay + 7.5, 9, 9);
+      if (s.assist) {
+        g.beginPath();
+        g.moveTo(ax + 7, ay + 12);
+        g.lineTo(ax + 10, ay + 15);
+        g.lineTo(ax + 16, ay + 5);
+        g.stroke();
+      }
+      g.font = `bold 11px 'Courier New', monospace`;
+      g.textBaseline = 'top';
+      g.fillStyle = s.assist ? PAL.floozHi : '#8a949e';
+      g.fillText('ASSIST', ax + 18, ay + 8);
+      this.assistSwitch = { x: ax - 2, y: ay - 2, w: aw + 4, h: 28 };
+      rightEdge = ax - 14;
+    } else {
+      this.assistSwitch = null;
     }
     const dNumX = rightEdge - 26;
     this.inset(dNumX, digY, 28, 20);
