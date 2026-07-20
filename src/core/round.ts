@@ -225,16 +225,18 @@ export class GameRound {
   }
 
   /**
-   * Plumber excitement, 0 (placid calm) .. 5 (freaking out). Driven by
-   * how close the flooz is to spilling — time left before it reaches
-   * the pipeline's first gap or dead end — adjusted by how likely the
-   * player is to escape: a rescue piece already in hand calms him, a
-   * doomed pipeline or a crowded board (fewer routing options) worries
-   * him further. Once the quota is met and nothing more is required,
-   * he relaxes for good.
+   * Plumber excitement: 0 (placid calm) .. 5 (freaking out), 6 =
+   * defeated (round lost). Driven by how close the flooz is to
+   * spilling — time left before it reaches the pipeline's first gap or
+   * dead end — adjusted by how likely the player is to escape: a
+   * rescue piece already in the queue calms him, a doomed pipeline or
+   * a nearly-full board (few routing options) worries him further.
+   * Once the quota is met and nothing more is required, he relaxes for
+   * good. Thresholds are deliberately generous so frantic poses are
+   * reserved for genuinely imminent spills.
    */
   panicLevel(): number {
-    if (this.over) return this.result?.won ? 0 : 5;
+    if (this.over) return this.result?.won ? 0 : 6;
     if (this.distanceMet && (!this.level.requireEndPiece || this.reachedEnd)) return 0;
 
     const walk = this.walkPipeline();
@@ -249,11 +251,11 @@ export class GameRound {
     }
 
     let level: number;
-    if (msLeft > 20000) level = 0;
-    else if (msLeft > 12000) level = 1;
-    else if (msLeft > 8000) level = 2;
-    else if (msLeft > 5000) level = 3;
-    else if (msLeft > 2500) level = 4;
+    if (msLeft > 15000) level = 0;
+    else if (msLeft > 10000) level = 1;
+    else if (msLeft > 6500) level = 2;
+    else if (msLeft > 4000) level = 3;
+    else if (msLeft > 2000) level = 4;
     else level = 5;
 
     // Escape odds.
@@ -261,14 +263,18 @@ export class GameRound {
       level += 1; // nothing fits — only a bomb can save this
     } else if (walk.gap) {
       const gap = walk.gap;
-      const inHand = this.queues.some((q) =>
-        q.peek().slice(0, 2).some((k) => findChannel(k, gap.entry) !== null),
+      const fitsAt = this.queues.flatMap((q) =>
+        q.peek().map((k) => findChannel(k, gap.entry) !== null),
       );
-      if (inHand) level -= 1; // the rescue piece is already coming up
+      if (fitsAt.slice(0, 2).some(Boolean)) {
+        level -= 1; // the rescue piece is already in hand
+      } else if (!fitsAt.some(Boolean)) {
+        level += 1; // nothing visible in the queue fits the gap
+      }
     }
     let used = 0;
     this.grid.forEach(() => used++);
-    if (used / (this.level.gridW * this.level.gridH) > 0.7) level += 1; // crowded board
+    if (used / (this.level.gridW * this.level.gridH) > 0.8) level += 1; // nearly full board
 
     return Math.max(0, Math.min(5, level));
   }

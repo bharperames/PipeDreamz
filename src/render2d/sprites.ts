@@ -5,7 +5,9 @@ import {
   LATTICE_CLEAN_CELLS,
   latticeCellRect,
   pipeCellRect,
+  Rect,
   REF,
+  SheetId,
   sheetsReady,
 } from './sheet';
 
@@ -1067,9 +1069,18 @@ function plumberRect(mood: number) {
 
 const plumberBitmaps = new Map<string, HTMLCanvasElement>();
 
+/** Separate defeated pose (sitting on the toolbox), its own image. */
+const DEFEAT_RECT = { x: 6, y: 6, w: 582, h: 540 };
+
+function plumberSource(mood: number): { sheet: SheetId; rect: Rect } {
+  return mood >= 6
+    ? { sheet: 'defeat', rect: DEFEAT_RECT }
+    : { sheet: 'plumber', rect: plumberRect(mood) };
+}
+
 /**
- * The plumber at excitement level `mood` (0 calm .. 5 freaking out),
- * anchored so his feet sit at y + h regardless of pose proportions.
+ * The plumber at excitement level `mood`: 0 calm .. 5 freaking out,
+ * 6 = defeated (the flooz spilled and the round is lost).
  */
 export function drawPlumber(
   g: CanvasRenderingContext2D,
@@ -1078,14 +1089,14 @@ export function drawPlumber(
   h: number,
   mood = 0,
 ): void {
-  mood = Math.max(0, Math.min(5, Math.round(mood)));
+  mood = Math.max(0, Math.min(6, Math.round(mood)));
   if (!sheetsReady()) return drawMascot(g, x, y, h);
-  const r = plumberRect(mood);
-  const w = Math.round(h * (r.w / r.h));
+  const { sheet, rect } = plumberSource(mood);
+  const w = Math.round(h * (rect.w / rect.h));
   const key = `${mood}:${h}:${QUALITY}`;
   let c = plumberBitmaps.get(key);
   if (!c) {
-    c = extract('plumber', r, w * QUALITY, h * QUALITY, {
+    c = extract(sheet, rect, w * QUALITY, h * QUALITY, {
       keySelf: true,
       threshold: 42,
       smooth: QUALITY > 1,
@@ -1097,8 +1108,8 @@ export function drawPlumber(
 
 /** Width the plumber will occupy for a given height (poses are ~square). */
 export function plumberWidth(h: number, mood = 0): number {
-  const r = plumberRect(Math.max(0, Math.min(5, Math.round(mood))));
-  return Math.round(h * (r.w / r.h));
+  const { rect } = plumberSource(Math.max(0, Math.min(6, Math.round(mood))));
+  return Math.round(h * (rect.w / rect.h));
 }
 
 export function drawMascot(g: CanvasRenderingContext2D, x: number, y: number, h = 96): void {

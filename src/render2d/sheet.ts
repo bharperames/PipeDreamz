@@ -17,7 +17,7 @@ export interface Rect {
   h: number;
 }
 
-export type SheetId = 'pipes' | 'filled' | 'ref' | 'lattice' | 'plumber';
+export type SheetId = 'pipes' | 'filled' | 'ref' | 'lattice' | 'plumber' | 'defeat';
 
 const images = new Map<SheetId, HTMLCanvasElement>();
 let ready = false;
@@ -38,12 +38,13 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 /** Load both sheets; resolves false (procedural fallback) on any failure. */
 export async function loadSheets(baseUrl: string): Promise<boolean> {
   try {
-    const [pipes, filled, ref, lattice, plumber] = await Promise.all([
+    const [pipes, filled, ref, lattice, plumber, defeat] = await Promise.all([
       loadImage(`${baseUrl}assets/pipes.jpg`),
       loadImage(`${baseUrl}assets/pipes_filled.jpg`),
       loadImage(`${baseUrl}assets/sheet.jpg`),
       loadImage(`${baseUrl}assets/lattice.png`),
       loadImage(`${baseUrl}assets/plumber.jpeg`),
+      loadImage(`${baseUrl}assets/plumber_defeat.png`),
     ]);
     for (const [id, img] of [
       ['pipes', pipes],
@@ -51,6 +52,7 @@ export async function loadSheets(baseUrl: string): Promise<boolean> {
       ['ref', ref],
       ['lattice', lattice],
       ['plumber', plumber],
+      ['defeat', defeat],
     ] as const) {
       const c = document.createElement('canvas');
       c.width = img.naturalWidth;

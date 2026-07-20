@@ -51,6 +51,28 @@ describe('easy-mode flow easing', () => {
   });
 });
 
+describe('plumber panic level', () => {
+  it('is calm with a long countdown, defeated after a losing spill', () => {
+    const round = makeTestRound(makeLevel({ delayMs: 60000 }));
+    expect(round.panicLevel()).toBe(0);
+    const lost = makeTestRound(makeLevel({ distance: 5 }));
+    lay(lost, 2, 3, 'H');
+    run(lost, 10000); // spills after one pipe
+    expect(lost.over).toBe(true);
+    expect(lost.result!.won).toBe(false);
+    expect(lost.panicLevel()).toBe(6);
+  });
+
+  it('is calm after a winning round, even though the flooz spilled', () => {
+    const round = makeTestRound(makeLevel({ distance: 2 }));
+    lay(round, 2, 3, 'H');
+    lay(round, 3, 3, 'H');
+    run(round, 10000);
+    expect(round.result!.won).toBe(true);
+    expect(round.panicLevel()).toBe(0);
+  });
+});
+
 describe('basic mode placement', () => {
   it('places the bottom-of-queue piece at the cursor', () => {
     const round = makeTestRound(makeLevel({ delayMs: 60000 }));
