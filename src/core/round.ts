@@ -37,6 +37,8 @@ export interface GameRoundConfig {
    * boosts pieces that fit there).
    */
   easyQueue?: boolean;
+  /** Override the basic-mode dispenser depth (default 5; easy 3). */
+  queueDepth?: number;
 }
 
 interface PieceMeta {
@@ -81,9 +83,10 @@ export class GameRound {
 
     this.easyQueue = config.easyQueue ?? false;
     const bias: BiasProvider = () => (this.easyQueue ? this.neededWeights() : null);
-    // Easy mode uses a shallower queue so biased pieces reach the
-    // player's hand sooner (less conveyor-belt delay, less visual noise).
-    const basicDepth = this.easyQueue ? 3 : 5;
+    // Depth 5 everywhere: A/B simulation showed the visible queue is
+    // LOOKAHEAD, not just delay — cutting easy mode to depth 3 lowered
+    // route-building wins 3.5x and chain wins by ~10 points.
+    const basicDepth = config.queueDepth ?? 5;
     this.queues =
       config.mode === 'expert'
         ? [
@@ -189,7 +192,10 @@ export class GameRound {
     });
 
     // Duplicate damping: each copy already visible in the queue makes
-    // the next roll of that kind less likely.
+    // the next roll of that kind less likely. A/B simulation validated
+    // per-copy damping: it approximates drawing without replacement,
+    // and the added VARIETY helps both chain play and route building
+    // (exempting the first copy measurably lowered win rates).
     for (const q of this.queues ?? []) {
       for (const kind of q.peek()) {
         weights[kind] = Math.max(0.15, weights[kind] * 0.65);

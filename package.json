@@ -9,7 +9,8 @@
     "pages": "npm run build && rm -rf assets && cp -R dist/assets assets && cp dist/dev.html index.html && touch .nojekyll",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sim": "RUN_SIM=1 vitest run --config vitest.sim.config.ts"
   },
   "devDependencies": {
     "typescript": "^5.5.0",

@@ -48,16 +48,11 @@ export class App {
     this.renderer.setRenderMode(settings.renderMode ?? 'smooth');
     this.applyScanlines();
 
-    const unlock = () => {
-      if (this.audioUnlocked) return;
-      this.audioUnlocked = true;
-      const ctx = new AudioContext();
-      this.sfx.unlock(ctx);
-      this.music.unlock(ctx);
-      this.music.playTrack('title');
-    };
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
+    // Any first gesture unlocks audio (pointer, mouse, touch, or key).
+    window.addEventListener('pointerdown', () => this.ensureAudio());
+    window.addEventListener('mousedown', () => this.ensureAudio());
+    window.addEventListener('touchstart', () => this.ensureAudio());
+    window.addEventListener('keydown', () => this.ensureAudio());
 
     window.addEventListener('keydown', (e) => this.screen?.onKeyDown(e));
     window.addEventListener('keyup', (e) => this.screen?.onKeyUp(e));
@@ -67,6 +62,9 @@ export class App {
 
     this.showTitle();
     requestAnimationFrame((t) => this.frame(t));
+    if (import.meta.env.DEV) {
+      (window as unknown as Record<string, unknown>).__pd = this;
+    }
   }
 
   private frame(t: number): void {
@@ -269,8 +267,20 @@ export class App {
     );
   }
 
+  /** Create/resume the shared AudioContext (must run inside a gesture). */
+  private ensureAudio(): void {
+    if (!this.audioUnlocked) {
+      this.audioUnlocked = true;
+      const ctx = new AudioContext();
+      this.sfx.unlock(ctx);
+      this.music.unlock(ctx);
+    }
+    this.music.resume();
+  }
+
   /** Flip music on/off, restoring the previous (or default) volume. */
   private toggleMusic(): boolean {
+    this.ensureAudio(); // the toggle click itself is a valid gesture
     if (this.music.volume > 0) {
       this.lastMusicVol = this.music.volume;
       this.music.setVolume(0);

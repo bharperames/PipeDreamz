@@ -83,6 +83,17 @@ export class MusicPlayer {
     this.master = ctx.createGain();
     this.master.gain.value = this.volume;
     this.master.connect(ctx.destination);
+    // A track may have been selected before audio existed; align the
+    // scheduler to now so it starts cleanly instead of "catching up".
+    this.nextStepTime = ctx.currentTime + 0.06;
+  }
+
+  /** Nudge a possibly-suspended context back to life (needs a gesture). */
+  resume(): void {
+    void this.ctx?.resume();
+    if (this.ctx && this.nextStepTime < this.ctx.currentTime) {
+      this.nextStepTime = this.ctx.currentTime + 0.05;
+    }
   }
 
   setVolume(v: number): void {
@@ -104,6 +115,10 @@ export class MusicPlayer {
   /** Call every frame; schedules notes ~0.25s ahead. */
   update(): void {
     if (!this.ctx || !this.master || !this.current) return;
+    // Never try to catch up across a long stall (tab throttling etc).
+    if (this.nextStepTime < this.ctx.currentTime) {
+      this.nextStepTime = this.ctx.currentTime + 0.05;
+    }
     const track = TRACKS[this.current]!;
     const stepDur = 60 / track.bpm / 4; // 16th notes
     while (this.nextStepTime < this.ctx.currentTime + 0.25) {
