@@ -54,7 +54,7 @@ export class App {
   /** Title-screen picks, remembered across sessions in this visit. */
   private titleLevel = 1; // 1-based, as displayed
   private prefEasy = true;
-  private prefAssist = true;
+  private prefAssist = false;
 
   constructor() {
     const canvas = document.getElementById('game') as HTMLCanvasElement;

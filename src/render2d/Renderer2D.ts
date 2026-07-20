@@ -276,14 +276,6 @@ export class Renderer2D {
         g.drawImage(pieceSprite(top), o.x, o.y, CELL, CELL);
         g.globalAlpha = 1;
       }
-      // Runner-up guesses as mini icons along the cell's bottom edge.
-      info.suggestions.slice(1).forEach((k, i) => {
-        const mx = o.x + 4 + i * 16;
-        const my = o.y + CELL - 18;
-        g.fillStyle = 'rgba(12,16,20,0.75)';
-        g.fillRect(mx, my, 14, 14);
-        g.drawImage(pieceSprite(k), mx + 1, my + 1, 12, 12);
-      });
       // Pulsing frame marking where the leak will happen if unfilled —
       // soft red, deliberately quieter than the white cursor.
       const pulse = 0.35 + 0.25 * Math.sin(this.frameCount / 9);

@@ -1051,7 +1051,9 @@ const heroBitmaps = new Map<number, HTMLCanvasElement>();
 // curiosity, concern, panic, hysteria, freaking out. Captions sit in
 // the top ~95px of each cell, so crops start below them.
 
-const PLUMBER_SHEET = { w: 1686, h: 2528, cols: 2, rows: 3, padX: 55, padTop: 95, padBot: 20 };
+const PLUMBER_SHEET = { w: 1686, h: 2528, cols: 2, rows: 3, padX: 55, padBot: 20 };
+/** Measured per-pose caption clearance (pixel-scanned; sweat drops kept). */
+const PLUMBER_PAD_TOP = [100, 100, 118, 120, 110, 110] as const;
 
 function plumberRect(mood: number) {
   const s = PLUMBER_SHEET;
@@ -1059,11 +1061,12 @@ function plumberRect(mood: number) {
   const ch = s.h / s.rows;
   const col = mood % s.cols;
   const row = Math.floor(mood / s.cols);
+  const padTop = PLUMBER_PAD_TOP[mood] ?? 110;
   return {
     x: Math.round(col * cw + s.padX),
-    y: Math.round(row * ch + s.padTop),
+    y: Math.round(row * ch + padTop),
     w: Math.round(cw - 2 * s.padX),
-    h: Math.round(ch - s.padTop - s.padBot),
+    h: Math.round(ch - padTop - s.padBot),
   };
 }
 
