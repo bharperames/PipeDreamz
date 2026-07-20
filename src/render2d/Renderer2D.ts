@@ -1,5 +1,5 @@
 import { DispenserQueue } from '../core/queue';
-import { Dir, GridPos, LevelDef } from '../core/types';
+import { Dir, GridPos, LevelDef, PlaceableKind } from '../core/types';
 import {
   CELL,
   drawFlooz,
@@ -93,6 +93,7 @@ export class Renderer2D {
     this.quality = mode === 'smooth' ? 3 : 1;
     setRenderQuality(this.quality);
     this.digitCache.clear();
+    this.placeholder = null;
     this.setBoardSize(this.level.gridW, this.level.gridH);
   }
 
@@ -104,6 +105,9 @@ export class Renderer2D {
     this.boardY = HUD_H + GAP;
     this.buffer.width = this.bufW * this.quality;
     this.buffer.height = this.bufH * this.quality;
+    // New board: drop queue animation state so the fresh dispenser
+    // doesn't crossfade from the previous round's pieces.
+    this.dispAnim = [];
     this.fit();
   }
 
@@ -222,6 +226,37 @@ export class Renderer2D {
   private easySwitch: { x: number; y: number; w: number; h: number } | null = null;
   private musicSwitch: { x: number; y: number; w: number; h: number } | null = null;
 
+  /** Presentation-only queue animation state (slides and crossfades). */
+  private dispAnim: Array<{
+    prev: PlaceableKind[] | null;
+    slideStart: number;
+    /** kind null = the "baking" placeholder tile. */
+    fades: Map<number, { kind: PlaceableKind | null; start: number }>;
+  }> = [];
+  private placeholder: HTMLCanvasElement | null = null;
+
+  /** Ghosted "?" tile for easy-mode slots that are still being decided. */
+  private placeholderSprite(): HTMLCanvasElement {
+    if (this.placeholder) return this.placeholder;
+    const c = document.createElement('canvas');
+    c.width = CELL * this.quality;
+    c.height = CELL * this.quality;
+    const g = c.getContext('2d')!;
+    g.scale(this.quality, this.quality);
+    g.fillStyle = 'rgba(150,160,170,0.08)';
+    g.fillRect(6, 6, CELL - 12, CELL - 12);
+    g.strokeStyle = '#3f454c';
+    g.lineWidth = 2;
+    g.strokeRect(6, 6, CELL - 12, CELL - 12);
+    g.font = `bold 24px 'Courier New', monospace`;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillStyle = 'rgba(182,131,75,0.65)';
+    g.fillText('?', CELL / 2, CELL / 2 + 1);
+    this.placeholder = c;
+    return c;
+  }
+
   private hitRect(
     rect: { x: number; y: number; w: number; h: number } | null,
     clientX: number,
@@ -249,7 +284,12 @@ export class Renderer2D {
     const x = GAP;
     let y = HUD_H + GAP;
     let firstBoxTop: number | null = null;
-    for (const q of queues) {
+    const SLIDE_MS = 150;
+    const FADE_MS = 240;
+    const now = performance.now();
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    queues.forEach((q, qi) => {
       if (firstBoxTop === null) firstBoxTop = y;
       const innerH = q.depth * (CELL + 4) + 8;
       const boxH = innerH + 16;
@@ -260,34 +300,88 @@ export class Renderer2D {
       g.fillRect(x + 2, y + 2, LEFT_W - 4, boxH - 4);
       g.fillStyle = PAL.black;
       g.fillRect(x + 8, y + 8, LEFT_W - 16, innerH);
-      const items = q.peek();
-      for (let i = 0; i < q.depth; i++) {
-        const sy = y + 8 + innerH - 4 - (i + 1) * (CELL + 4) + 4;
-        const sx = x + (LEFT_W - CELL) / 2;
-        const kind = items[i];
-        if (kind) {
-          // Easy mode re-decides the far slots against the live board;
-          // blur + dim them so it's clear they're still "baking".
-          const baking = easy === true && i >= 2;
-          if (baking) {
-            g.save();
-            g.filter = 'blur(1.2px)';
-            g.globalAlpha = 0.55;
+
+      const items = [...q.peek()];
+      const anim = (this.dispAnim[qi] ??= { prev: null, slideStart: 0, fades: new Map() });
+
+      // Detect what changed since last frame: a take shifts everything
+      // down one slot (slide); a re-decided far slot swaps in place
+      // (crossfade from the old piece).
+      const prev = anim.prev;
+      if (prev && prev.some((k, i) => k !== items[i])) {
+        const shifted =
+          prev.length === items.length &&
+          prev[1] === items[0] &&
+          (easy === true || items.length < 3 || prev[2] === items[1]);
+        if (shifted) {
+          anim.slideStart = now;
+          anim.fades.clear();
+          if (easy === true && items.length > 1) {
+            // A hidden "baking" slot just graduated into the stable
+            // near queue: reveal it with a crossfade from the ? tile.
+            anim.fades.set(1, { kind: null, start: now + SLIDE_MS });
           }
-          g.drawImage(pieceSprite(kind), sx, sy, CELL, CELL);
-          if (baking) g.restore();
-        }
-        if (i === 0) {
-          // subtle marker brackets around the next piece
-          g.fillStyle = PAL.ledYellow;
-          g.fillRect(sx - 6, sy, 4, 12);
-          g.fillRect(sx - 6, sy + CELL - 12, 4, 12);
-          g.fillRect(sx + CELL + 2, sy, 4, 12);
-          g.fillRect(sx + CELL + 2, sy + CELL - 12, 4, 12);
+        } else {
+          for (let i = 0; i < items.length; i++) {
+            const hidden = easy === true && i >= 2;
+            if (!hidden && prev[i] !== items[i]) {
+              anim.fades.set(i, { kind: prev[i]!, start: now });
+            }
+          }
         }
       }
+      anim.prev = items;
+
+      const slideP = anim.slideStart ? Math.min(1, (now - anim.slideStart) / SLIDE_MS) : 1;
+      const slideOff = -(CELL + 4) * (1 - easeOut(slideP));
+
+      // Pieces are clipped to the rack interior so the new top piece
+      // slides IN from above rather than popping.
+      g.save();
+      g.beginPath();
+      g.rect(x + 8, y + 8, LEFT_W - 16, innerH);
+      g.clip();
+      for (let i = 0; i < q.depth; i++) {
+        const sy = y + 8 + innerH - 4 - (i + 1) * (CELL + 4) + 4 + slideOff;
+        const sx = x + (LEFT_W - CELL) / 2;
+        const kind = items[i];
+        if (!kind) continue;
+        // Easy mode: far slots are still being decided against the live
+        // board — show an honest placeholder, not a piece that may change.
+        const hidden = easy === true && i >= 2;
+        if (hidden) {
+          g.drawImage(this.placeholderSprite(), sx, sy, CELL, CELL);
+          continue;
+        }
+        const fade = anim.fades.get(i);
+        let p = 1;
+        if (fade) {
+          p = Math.max(0, Math.min(1, (now - fade.start) / FADE_MS));
+          if (p >= 1) anim.fades.delete(i);
+        }
+        g.save();
+        if (fade && p < 1) {
+          g.globalAlpha = 1 - p;
+          const old = fade.kind === null ? this.placeholderSprite() : pieceSprite(fade.kind);
+          g.drawImage(old, sx, sy, CELL, CELL);
+        }
+        g.globalAlpha = fade ? p : 1;
+        g.drawImage(pieceSprite(kind), sx, sy, CELL, CELL);
+        g.restore();
+      }
+      g.restore();
+
+      // Marker brackets around the (stationary) next-piece slot.
+      const my = y + 8 + innerH - 4 - (CELL + 4) + 4;
+      const mx = x + (LEFT_W - CELL) / 2;
+      g.fillStyle = PAL.ledYellow;
+      g.fillRect(mx - 6, my, 4, 12);
+      g.fillRect(mx - 6, my + CELL - 12, 4, 12);
+      g.fillRect(mx + CELL + 2, my, 4, 12);
+      g.fillRect(mx + CELL + 2, my + CELL - 12, 4, 12);
+
       y += boxH + GAP;
-    }
+    });
     // Easy-queue switch: a small clickable tag on the dispenser itself.
     if (easy !== undefined && firstBoxTop !== null) {
       const tw = 64;

@@ -183,7 +183,8 @@ export class PlayingScreen {
   update(dtMs: number): void {
     this.renderTime += dtMs;
     if (!this.paused) {
-      this.accumulator += Math.min(dtMs, 100);
+      // Instant replay runs at 2x speed.
+      this.accumulator += Math.min(dtMs, 100) * (this.replay ? 2 : 1);
       while (this.accumulator >= SIM_DT) {
         this.applyDueReplayActions();
         this.accumulator -= SIM_DT;
