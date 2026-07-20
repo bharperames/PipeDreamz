@@ -229,6 +229,7 @@ export class Renderer2D {
   /** Presentation-only queue animation state (slides and crossfades). */
   private dispAnim: Array<{
     prev: PlaceableKind[] | null;
+    prevPredicted: readonly PlaceableKind[] | null;
     slideStart: number;
     /** kind null = the "baking" placeholder tile. */
     fades: Map<number, { kind: PlaceableKind | null; start: number }>;
@@ -278,8 +279,16 @@ export class Renderer2D {
     return this.hitRect(this.musicSwitch, clientX, clientY);
   }
 
-  /** Dispenser box(es) in the left column; next piece at the bottom. */
-  drawDispensers(queues: DispenserQueue[], easy?: boolean): void {
+  /**
+   * Dispenser box(es) in the left column; next piece at the bottom.
+   * `predicted` previews what the easy solver currently leans toward in
+   * the still-baking far slots (a prediction, not a promise).
+   */
+  drawDispensers(
+    queues: DispenserQueue[],
+    easy?: boolean,
+    predicted?: readonly PlaceableKind[],
+  ): void {
     const g = this.g;
     const x = GAP;
     let y = HUD_H + GAP;
@@ -302,7 +311,12 @@ export class Renderer2D {
       g.fillRect(x + 8, y + 8, LEFT_W - 16, innerH);
 
       const items = [...q.peek()];
-      const anim = (this.dispAnim[qi] ??= { prev: null, slideStart: 0, fades: new Map() });
+      const anim = (this.dispAnim[qi] ??= {
+        prev: null,
+        prevPredicted: null,
+        slideStart: 0,
+        fades: new Map(),
+      });
 
       // Detect what changed since last frame: a take shifts everything
       // down one slot (slide); a re-decided far slot swaps in place
@@ -317,9 +331,13 @@ export class Renderer2D {
           anim.slideStart = now;
           anim.fades.clear();
           if (easy === true && items.length > 1) {
-            // A hidden "baking" slot just graduated into the stable
-            // near queue: reveal it with a crossfade from the ? tile.
-            anim.fades.set(1, { kind: null, start: now + SLIDE_MS });
+            // A baking slot just graduated into the stable near queue:
+            // reveal it with a crossfade from whatever it displayed
+            // (the top prediction, or the ? tile).
+            anim.fades.set(1, {
+              kind: anim.prevPredicted?.[0] ?? null,
+              start: now + SLIDE_MS,
+            });
           }
         } else {
           for (let i = 0; i < items.length; i++) {
@@ -331,6 +349,7 @@ export class Renderer2D {
         }
       }
       anim.prev = items;
+      anim.prevPredicted = predicted ?? null;
 
       const slideP = anim.slideStart ? Math.min(1, (now - anim.slideStart) / SLIDE_MS) : 1;
       const slideOff = -(CELL + 4) * (1 - easeOut(slideP));
@@ -347,10 +366,29 @@ export class Renderer2D {
         const kind = items[i];
         if (!kind) continue;
         // Easy mode: far slots are still being decided against the live
-        // board — show an honest placeholder, not a piece that may change.
+        // board — preview what the solver currently leans toward,
+        // ghosted and badged so it reads as a prediction, not a promise.
         const hidden = easy === true && i >= 2;
         if (hidden) {
-          g.drawImage(this.placeholderSprite(), sx, sy, CELL, CELL);
+          const guess = predicted?.[i - 2];
+          if (guess) {
+            g.save();
+            g.filter = 'blur(0.8px)';
+            g.globalAlpha = 0.45;
+            g.drawImage(pieceSprite(guess), sx, sy, CELL, CELL);
+            g.restore();
+            g.save();
+            g.font = `bold 13px 'Courier New', monospace`;
+            g.textAlign = 'left';
+            g.textBaseline = 'top';
+            g.fillStyle = 'rgba(10,10,14,0.8)';
+            g.fillRect(sx + CELL - 13, sy + 1, 12, 14);
+            g.fillStyle = '#d8a94c';
+            g.fillText('?', sx + CELL - 10, sy + 2);
+            g.restore();
+          } else {
+            g.drawImage(this.placeholderSprite(), sx, sy, CELL, CELL);
+          }
           continue;
         }
         const fade = anim.fades.get(i);

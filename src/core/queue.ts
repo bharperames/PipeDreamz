@@ -25,6 +25,8 @@ export type BiasProvider = () => PieceWeights | null;
  */
 export class DispenserQueue {
   private items: PlaceableKind[] = [];
+  /** Shuffle bag for unbiased rolls: bounded droughts, still random. */
+  private bag: PlaceableKind[] = [];
 
   constructor(
     private rng: Rng,
@@ -35,8 +37,27 @@ export class DispenserQueue {
     for (let i = 0; i < depth; i++) this.items.push(this.roll());
   }
 
+  private refillBag(): void {
+    this.bag = [...PLACEABLE_KINDS];
+    for (let i = this.bag.length - 1; i > 0; i--) {
+      const j = this.rng.int(i + 1);
+      [this.bag[i], this.bag[j]] = [this.bag[j]!, this.bag[i]!];
+    }
+  }
+
   private roll(): PlaceableKind {
-    const weights = this.bias?.() ?? this.weights;
+    // Easy-mode bias (dynamic weights) uses a weighted roll.
+    const biased = this.bias?.();
+    const weights = biased ?? this.weights;
+    const uniform =
+      !biased && PLACEABLE_KINDS.every((k) => weights[k] === weights[PLACEABLE_KINDS[0]!]);
+    if (uniform) {
+      // Unbiased play draws from a shuffle bag: every kind is guaranteed
+      // to appear within any 13 consecutive pieces (true uniform RNG has
+      // a ~10% chance of starving a needed kind for 15+ rolls).
+      if (this.bag.length === 0) this.refillBag();
+      return this.bag.pop()!;
+    }
     let total = 0;
     for (const k of PLACEABLE_KINDS) total += weights[k];
     let r = this.rng.next() * total;

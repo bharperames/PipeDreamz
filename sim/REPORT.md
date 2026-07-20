@@ -148,6 +148,23 @@ placement — the dispenser "thinks along").
   boost (8), connect-to-network / END boost (16), discard-kind damping
   (×0.6, 3+ tiles from the flow front).
 
+## 6b. Addendum — shuffle-bag distribution (shipped)
+
+Player report: in NORMAL mode a needed elbow refused to appear. Analysis
+confirmed the unbiased dispenser was true-uniform RNG, where a specific
+kind fails to appear in 15 rolls ~10% of the time. Unbiased rolls now draw
+from a 7-piece **shuffle bag** (every kind appears within any 13 draws).
+Spot-check (100 games/cell): L1 greedy normal-mode wins rose from ~40% to
+**54–66%**, L5 from ~12% to 13–18%. The easy-mode bias path is unchanged
+(dynamic weights can't use a bag), and its baseline advantage narrows
+accordingly — easy mode's value is now concentrated where it belongs:
+scores, goal levels, and border safety.
+
+The easy solver also became **edge-aware**: a piece that fits the gap but
+whose exit runs off the board (or into an obstacle / mismatched / filled
+pipe) is scored as a dead end (weight 1 vs 8–16), so near borders the
+dispenser strongly favors pieces that turn away from the edge.
+
 ## 7. Reproducing
 
 ```sh

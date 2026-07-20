@@ -1,6 +1,14 @@
 import { GameRound } from '../../core/round';
 import { mulberry32 } from '../../core/rng';
-import { GameEvent, GameMode, GridPos, LevelDef, PlayerId, RoundResult } from '../../core/types';
+import {
+  GameEvent,
+  GameMode,
+  GridPos,
+  LevelDef,
+  PlaceableKind,
+  PlayerId,
+  RoundResult,
+} from '../../core/types';
 import { Renderer2D } from '../../render2d/Renderer2D';
 import { PAL } from '../../render2d/sprites';
 import { Sfx } from '../../audio/Sfx';
@@ -43,6 +51,8 @@ export class PlayingScreen {
   private renderTime = 0;
   private shiftHeld = false;
   private replayCursor = 0;
+  private predictions: PlaceableKind[] = [];
+  private predictionsAt = -1000;
 
   constructor(
     private renderer: Renderer2D,
@@ -250,7 +260,16 @@ export class PlayingScreen {
       r.drawCursorAt(cell.x, cell.y, valid, p === 0 ? PAL.white : '#7db6f0');
     });
 
-    r.drawDispensers(round.queues, round.easyQueue);
+    // Throttled prediction preview for the baking slots (easy mode).
+    if (round.easyQueue && this.renderTime - this.predictionsAt > 250) {
+      this.predictionsAt = this.renderTime;
+      this.predictions = round.predictedKinds(3);
+    }
+    r.drawDispensers(
+      round.queues,
+      round.easyQueue,
+      round.easyQueue ? this.predictions : undefined,
+    );
     r.updateOverlays(dtMs);
 
     const mode = round.mode;

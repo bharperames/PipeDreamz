@@ -14,6 +14,7 @@ import {
   opposite,
   PieceWeights,
   PLACEABLE_KINDS,
+  PlaceableKind,
   PlacedPiece,
   PlayerId,
   RoundResult,
@@ -107,6 +108,17 @@ export class GameRound {
   }
 
   /**
+   * What the dispenser is currently leaning toward: the top-weighted
+   * kinds under the live easy-mode bias. Used by the UI to preview the
+   * still-baking queue slots (a prediction, not a promise).
+   */
+  predictedKinds(count = 3): PlaceableKind[] {
+    const biased = this.easyQueue ? this.neededWeights() : null;
+    const w = biased ?? this.level.pieceWeights ?? DEFAULT_WEIGHTS;
+    return [...PLACEABLE_KINDS].sort((a, b) => w[b] - w[a]).slice(0, count);
+  }
+
+  /**
    * Easy-mode solver: follow the pipeline from the flow head (or the
    * start piece before flow begins) through placed pieces to the first
    * gap, and boost the pieces that would fit that gap — strongest for
@@ -166,22 +178,25 @@ export class GameRound {
     for (const kind of PLACEABLE_KINDS) {
       const ch = findChannel(kind, entry);
       if (ch === null) continue;
-      let w = 4;
+      // Fits the gap, but where does its exit lead? A piece whose exit
+      // runs off the board (or into an obstacle / mismatched / filled
+      // pipe) guarantees a spill one step later — near borders the
+      // dispenser must favor pieces that turn away from the edge.
+      let w = 1; // dead end
       const exitDir = channelExit(kind, ch, entry);
       const next = this.grid.neighbor(pos, exitDir);
       if (next) {
         const target = this.grid.get(next.pos);
         if (!target) {
-          w = 8;
+          w = 8; // open continuation
         } else if (target.kind === 'END') {
-          w = 16;
-        } else if (
-          !target.fixed &&
-          findChannel(target.kind, opposite(exitDir)) !== null &&
-          !target.channels.every((c) => c.filled)
-        ) {
-          // Exit links the flow into the player's built network.
-          w = 16;
+          w = 16; // straight into the goal tank
+        } else {
+          const ch2 = findChannel(target.kind, opposite(exitDir));
+          if (ch2 !== null && !target.channels[ch2]!.filled) {
+            // Exit links the flow into the player's built network.
+            w = 16;
+          }
         }
       }
       weights[kind] = w;
