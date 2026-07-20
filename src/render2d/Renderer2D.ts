@@ -1,4 +1,5 @@
 import { DispenserQueue } from '../core/queue';
+import { PathDebugInfo } from '../core/round';
 import { Dir, GridPos, LevelDef, PlaceableKind } from '../core/types';
 import {
   CELL,
@@ -220,6 +221,84 @@ export class Renderer2D {
     g.setLineDash([6, 4]);
     g.lineDashOffset = -Math.floor(this.frameCount / 4) % 10;
     g.strokeRect(o.x + 2, o.y + 2, CELL - 4, CELL - 4);
+    g.restore();
+  }
+
+  /**
+   * Debug overlay for the forward path finder: an animated trace along
+   * the pipeline the solver walked, the gap it wants filled (with a
+   * ghost of the piece it believes prevents failure, plus runner-up
+   * mini icons), or a red marker where the pipeline is doomed to spill.
+   */
+  drawPathDebug(info: PathDebugInfo): void {
+    const g = this.g;
+    const center = (p: GridPos) => {
+      const o = this.cellOrigin(p.x, p.y);
+      return { x: o.x + CELL / 2, y: o.y + CELL / 2 };
+    };
+
+    g.save();
+
+    // The walked pipeline, as a marching-ants polyline through cell centers.
+    const pts = info.path.map(center);
+    if (info.gap) pts.push(center(info.gap.pos));
+    else if (info.deadEnd) pts.push(center(info.deadEnd));
+    if (pts.length > 1) {
+      g.beginPath();
+      pts.forEach((p, i) => (i === 0 ? g.moveTo(p.x, p.y) : g.lineTo(p.x, p.y)));
+      g.strokeStyle = 'rgba(20,30,40,0.55)';
+      g.lineWidth = 6;
+      g.lineJoin = 'round';
+      g.stroke();
+      g.strokeStyle = 'rgba(105,210,255,0.9)';
+      g.lineWidth = 2.5;
+      g.setLineDash([7, 6]);
+      g.lineDashOffset = -(this.frameCount % 26) / 2;
+      g.stroke();
+      g.setLineDash([]);
+    }
+
+    if (info.gap) {
+      const o = this.cellOrigin(info.gap.pos.x, info.gap.pos.y);
+      // Ghost of the best-guess missing piece.
+      const top = info.suggestions[0];
+      if (top) {
+        g.globalAlpha = 0.4;
+        g.drawImage(pieceSprite(top), o.x, o.y, CELL, CELL);
+        g.globalAlpha = 1;
+      }
+      // Runner-up guesses as mini icons along the cell's bottom edge.
+      info.suggestions.slice(1).forEach((k, i) => {
+        const mx = o.x + 4 + i * 16;
+        const my = o.y + CELL - 18;
+        g.fillStyle = 'rgba(12,16,20,0.75)';
+        g.fillRect(mx, my, 14, 14);
+        g.drawImage(pieceSprite(k), mx + 1, my + 1, 12, 12);
+      });
+      // Pulsing frame marking the gap the solver is trying to fill.
+      const pulse = 0.55 + 0.35 * Math.sin(this.frameCount / 9);
+      g.strokeStyle = `rgba(110,235,140,${pulse.toFixed(3)})`;
+      g.lineWidth = 3;
+      g.setLineDash([5, 4]);
+      g.strokeRect(o.x + 3, o.y + 3, CELL - 6, CELL - 6);
+      g.setLineDash([]);
+    } else if (info.deadEnd) {
+      // The pipeline is doomed here — no piece can prevent the spill.
+      const o = this.cellOrigin(info.deadEnd.x, info.deadEnd.y);
+      g.strokeStyle = 'rgba(235,90,80,0.9)';
+      g.lineWidth = 3;
+      g.setLineDash([5, 4]);
+      g.strokeRect(o.x + 3, o.y + 3, CELL - 6, CELL - 6);
+      g.setLineDash([]);
+      g.lineWidth = 4;
+      g.beginPath();
+      g.moveTo(o.x + 14, o.y + 14);
+      g.lineTo(o.x + CELL - 14, o.y + CELL - 14);
+      g.moveTo(o.x + CELL - 14, o.y + 14);
+      g.lineTo(o.x + 14, o.y + CELL - 14);
+      g.stroke();
+    }
+
     g.restore();
   }
 

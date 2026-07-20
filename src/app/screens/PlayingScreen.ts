@@ -53,6 +53,8 @@ export class PlayingScreen {
   private replayCursor = 0;
   private predictions: PlaceableKind[] = [];
   private predictionsAt = -1000;
+  /** Debug overlay: visualize the forward path finder (G toggles). */
+  private showPathDebug = false;
 
   constructor(
     private renderer: Renderer2D,
@@ -89,6 +91,11 @@ export class PlayingScreen {
     if (KEY_QUIT.includes(e.code)) return this.callbacks.onQuit();
     if (KEY_PAUSE.includes(e.code)) {
       this.paused = !this.paused;
+      return;
+    }
+    if (e.code === 'KeyG') {
+      // Render-only debug view — allowed any time, never recorded.
+      this.showPathDebug = !this.showPathDebug;
       return;
     }
     if (this.replay) return; // playback drives the round, not keys
@@ -252,6 +259,9 @@ export class PlayingScreen {
         piece.kind === 'START' ? round.level.start.exit : undefined,
       );
     }
+
+    // Forward path-finder debug overlay (G key).
+    if (this.showPathDebug && !round.over) r.drawPathDebug(round.debugPath());
 
     // Cursors
     this.cursorCells.forEach((cell, p) => {

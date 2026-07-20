@@ -52,6 +52,14 @@ interface PieceMeta {
   dispenser: 0 | 1;
 }
 
+/** Forward path-finder trace for the debug overlay. */
+export interface PathDebugInfo {
+  path: GridPos[];
+  gap: { pos: GridPos; entry: Dir } | null;
+  deadEnd: GridPos | null;
+  suggestions: PlaceableKind[];
+}
+
 export class GameRound {
   readonly level: LevelDef;
   readonly mode: GameMode;
@@ -119,17 +127,22 @@ export class GameRound {
   }
 
   /**
-   * Easy-mode solver: follow the pipeline from the flow head (or the
-   * start piece before flow begins) through placed pieces to the first
-   * gap, and boost the pieces that would fit that gap — strongest for
-   * pieces whose exit also leads somewhere useful.
+   * Follow the pipeline from the flow head (or the start piece before
+   * flow begins) through connected placed pieces. Returns the traversed
+   * cells, the first gap (empty cell the flow is heading toward), or
+   * the dead-end cell where the pipeline is doomed to spill.
    */
-  private neededWeights(): PieceWeights | null {
+  private walkPipeline(): {
+    path: GridPos[];
+    gap: { pos: GridPos; entry: Dir } | null;
+    deadEnd: GridPos | null;
+  } {
     let pos: GridPos;
     let exit: Dir;
     const head = this.flow?.head;
     if (head && this.flow.state === 'flowing') {
       const piece = this.grid.get(head.pos)!;
+      if (piece.kind === 'END') return { path: [head.pos], gap: null, deadEnd: null };
       pos = head.pos;
       exit =
         piece.kind === 'START'
@@ -140,24 +153,63 @@ export class GameRound {
       exit = this.level.start.exit;
     }
 
+    const path: GridPos[] = [pos];
     const seen = new Set<string>();
     for (let i = 0; i < this.level.gridW * this.level.gridH * 2; i++) {
       const step = this.grid.neighbor(pos, exit);
-      if (!step) return null; // heading off the board: no piece helps
+      if (!step) return { path, gap: null, deadEnd: pos }; // spills off-board
       const piece = this.grid.get(step.pos);
-      if (!piece) return this.weightsForGap(step.pos, opposite(exit));
-      if (piece.kind === 'OBSTACLE' || piece.kind === 'START') return null;
-      if (piece.kind === 'END') return null; // pipeline already complete
+      if (!piece) {
+        return { path, gap: { pos: step.pos, entry: opposite(exit) }, deadEnd: null };
+      }
+      if (piece.kind === 'OBSTACLE' || piece.kind === 'START') {
+        return { path, gap: null, deadEnd: step.pos };
+      }
+      if (piece.kind === 'END') {
+        path.push(step.pos);
+        return { path, gap: null, deadEnd: null }; // pipeline complete
+      }
       const entry = opposite(exit);
       const ch = findChannel(piece.kind, entry);
-      if (ch === null || piece.channels[ch]!.filled) return null;
+      if (ch === null || piece.channels[ch]!.filled) {
+        return { path, gap: null, deadEnd: step.pos };
+      }
       const key = `${step.pos.x},${step.pos.y}:${ch}`;
-      if (seen.has(key)) return null;
+      if (seen.has(key)) return { path, gap: null, deadEnd: null };
       seen.add(key);
       exit = channelExit(piece.kind, ch, entry);
       pos = step.pos;
+      path.push(pos);
     }
-    return null;
+    return { path, gap: null, deadEnd: null };
+  }
+
+  /**
+   * Easy-mode solver: boost the pieces that fit the pipeline's first
+   * gap — strongest for pieces whose exit also leads somewhere useful.
+   */
+  private neededWeights(): PieceWeights | null {
+    const walk = this.walkPipeline();
+    if (!walk.gap) return null;
+    return this.weightsForGap(walk.gap.pos, walk.gap.entry);
+  }
+
+  /**
+   * Debug view of the forward path finder: the traced pipeline, the gap
+   * or dead-end it terminates at, and the pieces the solver believes
+   * would prevent failure (best first).
+   */
+  debugPath(): PathDebugInfo {
+    const walk = this.walkPipeline();
+    let suggestions: PlaceableKind[] = [];
+    if (walk.gap) {
+      const gap = walk.gap;
+      const weights = this.weightsForGap(gap.pos, gap.entry);
+      suggestions = PLACEABLE_KINDS.filter((k) => findChannel(k, gap.entry) !== null)
+        .sort((a, b) => weights[b] - weights[a])
+        .slice(0, 3);
+    }
+    return { ...walk, suggestions };
   }
 
   /**
