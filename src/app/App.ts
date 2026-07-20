@@ -12,7 +12,17 @@ import {
   saveSettings,
 } from '../persistence/highscores';
 import { BonusScreen } from './screens/BonusScreen';
-import { PlayingScreen } from './screens/PlayingScreen';
+import { PlayingScreen, RecordedAction } from './screens/PlayingScreen';
+
+/** Everything needed to re-run the round just played, deterministically. */
+interface LastRoundSetup {
+  levelIndex: number;
+  seed: number;
+  mode: GameMode;
+  training: boolean;
+  easyInitial: boolean;
+  totalsBefore: [number, number];
+}
 
 interface Session {
   mode: GameMode;
@@ -36,6 +46,7 @@ export class App {
   private lastFrame = 0;
   private audioUnlocked = false;
   private lastMusicVol = 0.35;
+  private lastRound: LastRoundSetup | null = null;
 
   constructor() {
     const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -246,6 +257,14 @@ export class App {
     this.clearScreen();
     this.music.playTrack(this.trackForLevel(s.levelIndex));
     const level = LEVELS[s.levelIndex]!;
+    this.lastRound = {
+      levelIndex: s.levelIndex,
+      seed: s.seedBase + s.levelIndex * 1013,
+      mode: s.mode,
+      training: s.training,
+      easyInitial: s.easy,
+      totalsBefore: [...s.totals] as [number, number],
+    };
     this.screen = new PlayingScreen(
       this.renderer,
       this.sfx,
@@ -295,11 +314,14 @@ export class App {
 
   // ---------- round end / tally ----------
 
-  private showRoundEnd(result: RoundResult): void {
+  private showRoundEnd(result: RoundResult, alreadyTallied = false): void {
     const s = this.session!;
-    this.clearScreen();
-    s.totals[0] += result.scores[0];
-    s.totals[1] += result.scores[1];
+    // The finished pipework stays on screen behind the dialog — the
+    // player wants to see what they built.
+    if (!alreadyTallied) {
+      s.totals[0] += result.scores[0];
+      s.totals[1] += result.scores[1];
+    }
 
     const rows: string[] = [
       `<div>Pipes filled <span class="num">${result.pipesFilled} / ${result.distance}</span></div>`,
@@ -318,6 +340,14 @@ export class App {
       rows.push(`<div class="total">Total score <span class="num">${s.totals[0]}</span></div>`);
     }
 
+    const canReplay =
+      this.screen instanceof PlayingScreen &&
+      this.screen.actionLog.length > 0 &&
+      this.lastRound !== null;
+    const replayBtn = canReplay
+      ? '<button data-act="replay">INSTANT REPLAY ⟲</button>'
+      : '';
+
     if (result.won) {
       const finishedGame = s.levelIndex + 1 >= LEVELS.length;
       const bonusNext = (s.levelIndex + 1) % 4 === 0 && !finishedGame;
@@ -326,7 +356,7 @@ export class App {
         <div class="tally">${rows.join('')}</div>
         <div class="menu-list"><button data-act="next">${
           finishedGame ? 'FINISH' : bonusNext ? 'BONUS ROUND ▶' : 'NEXT LEVEL ▶'
-        }</button></div>
+        }</button>${replayBtn}</div>
       `);
       el.querySelector('[data-act=next]')!.addEventListener('click', () => {
         this.sfx.play('menu');
@@ -335,14 +365,53 @@ export class App {
         s.levelIndex++;
         this.showLevelIntro();
       });
+      el.querySelector('[data-act=replay]')?.addEventListener('click', () => {
+        this.sfx.play('menu');
+        this.startReplay(result);
+      });
     } else {
       const el = this.menu(`
         <h2 class="panel-heading" style="color:var(--red)">THE FLOOZ SPILLED!</h2>
         <div class="tally">${rows.join('')}</div>
-        <div class="menu-list"><button data-act="over">CONTINUE</button></div>
+        <div class="menu-list"><button data-act="over">CONTINUE</button>${replayBtn}</div>
       `);
       el.querySelector('[data-act=over]')!.addEventListener('click', () => this.showGameOver(false));
+      el.querySelector('[data-act=replay]')?.addEventListener('click', () => {
+        this.sfx.play('menu');
+        this.startReplay(result);
+      });
     }
+  }
+
+  /**
+   * Instant replay: re-run the identical round (same level, same seed,
+   * same dispenser) with the recorded action script standing in for the
+   * player's input — the build reconstructs itself in real time.
+   */
+  private startReplay(result: RoundResult): void {
+    const setup = this.lastRound;
+    if (!setup || !(this.screen instanceof PlayingScreen)) return;
+    const log: RecordedAction[] = [...this.screen.actionLog];
+    this.hideMenu();
+    this.clearScreen();
+    const level = LEVELS[setup.levelIndex]!;
+    this.screen = new PlayingScreen(
+      this.renderer,
+      this.sfx,
+      level,
+      setup.mode,
+      setup.seed,
+      setup.training,
+      setup.easyInitial,
+      {
+        onRoundOver: () => this.showRoundEnd(result, true),
+        onQuit: () => this.showRoundEnd(result, true),
+        musicOn: () => this.music.volume > 0,
+        toggleMusic: () => this.toggleMusic(),
+      },
+      setup.totalsBefore,
+      log,
+    );
   }
 
   // ---------- bonus round ----------
@@ -382,7 +451,7 @@ export class App {
 
   private showGameOver(victory: boolean): void {
     const s = this.session!;
-    this.clearScreen();
+    // Board stays visible behind the game-over dialog too.
     const heading = victory
       ? '<h2 class="panel-heading">ALL 36 LEVELS CLEARED!</h2>'
       : '<h2 class="panel-heading" style="color:var(--red)">GAME OVER</h2>';

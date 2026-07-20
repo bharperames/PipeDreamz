@@ -50,6 +50,8 @@ export interface HudState {
   fastFlow: boolean;
   /** Draws the clickable music chip in the upper right when defined. */
   musicOn?: boolean;
+  /** Instant-replay playback indicator. */
+  replay?: boolean;
 }
 
 /**
@@ -263,7 +265,18 @@ export class Renderer2D {
         const sy = y + 8 + innerH - 4 - (i + 1) * (CELL + 4) + 4;
         const sx = x + (LEFT_W - CELL) / 2;
         const kind = items[i];
-        if (kind) g.drawImage(pieceSprite(kind), sx, sy, CELL, CELL);
+        if (kind) {
+          // Easy mode re-decides the far slots against the live board;
+          // blur + dim them so it's clear they're still "baking".
+          const baking = easy === true && i >= 2;
+          if (baking) {
+            g.save();
+            g.filter = 'blur(1.2px)';
+            g.globalAlpha = 0.55;
+          }
+          g.drawImage(pieceSprite(kind), sx, sy, CELL, CELL);
+          if (baking) g.restore();
+        }
         if (i === 0) {
           // subtle marker brackets around the next piece
           g.fillStyle = PAL.ledYellow;
@@ -478,6 +491,9 @@ export class Renderer2D {
 
     if (s.fastFlow && s.countdownFrac <= 0) {
       this.label('FAST', bx - 52, this.bufH - 24, PAL.ledYellow);
+    }
+    if (s.replay && Math.floor(this.frameCount / 30) % 2 === 0) {
+      this.label('▶ REPLAY', this.boardX + 8, HUD_H + 8, PAL.red);
     }
     if (s.paused) {
       const cx = this.boardX + (this.level.gridW * CELL) / 2;

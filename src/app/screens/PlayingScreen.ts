@@ -26,14 +26,23 @@ export interface PlayingCallbacks {
   toggleMusic?(): boolean;
 }
 
+/** One recorded input, timestamped in deterministic sim time. */
+export type RecordedAction =
+  | { t: number; type: 'place'; pos: GridPos; dispenser: 0 | 1 }
+  | { t: number; type: 'fast' }
+  | { t: number; type: 'easy'; on: boolean };
+
 export class PlayingScreen {
   readonly round: GameRound;
+  /** Everything the player did, for the instant replay. */
+  readonly actionLog: RecordedAction[] = [];
   private cursorCells: GridPos[] = [];
   private accumulator = 0;
   private paused = false;
   private endedAtMs: number | null = null;
   private renderTime = 0;
   private shiftHeld = false;
+  private replayCursor = 0;
 
   constructor(
     private renderer: Renderer2D,
@@ -45,6 +54,8 @@ export class PlayingScreen {
     private easyQueue: boolean,
     private callbacks: PlayingCallbacks,
     private totals: [number, number],
+    /** When set, this script drives the round instead of user input. */
+    private replay?: RecordedAction[],
   ) {
     this.round = new GameRound(
       {
@@ -70,8 +81,10 @@ export class PlayingScreen {
       this.paused = !this.paused;
       return;
     }
+    if (this.replay) return; // playback drives the round, not keys
     if (this.paused || this.round.over) return;
     if (KEY_FAST.includes(e.code)) {
+      this.actionLog.push({ t: this.round.flow.nowMs, type: 'fast' });
       this.round.apply({ type: 'fastForward', player: 0 });
       return;
     }
@@ -116,9 +129,15 @@ export class PlayingScreen {
       this.sfx.play('menu');
       return;
     }
+    if (this.replay) return; // playback drives the round, not clicks
     if (this.paused || this.round.over) return;
     if (this.renderer.hitEasySwitch(e.clientX, e.clientY)) {
       this.round.easyQueue = !this.round.easyQueue;
+      this.actionLog.push({
+        t: this.round.flow.nowMs,
+        type: 'easy',
+        on: this.round.easyQueue,
+      });
       this.callbacks.onEasyToggle?.(this.round.easyQueue);
       this.sfx.play('menu');
       return;
@@ -130,14 +149,33 @@ export class PlayingScreen {
   }
 
   private place(player: PlayerId, pos: GridPos, dispenser: 0 | 1): void {
-    this.handleEvents(
-      this.round.apply({
-        type: 'place',
-        player,
-        pos,
-        dispenser: this.round.mode === 'expert' ? dispenser : 0,
-      }),
-    );
+    const events = this.round.apply({
+      type: 'place',
+      player,
+      pos,
+      dispenser: this.round.mode === 'expert' ? dispenser : 0,
+    });
+    if (events.length > 0) {
+      this.actionLog.push({ t: this.round.flow.nowMs, type: 'place', pos, dispenser });
+    }
+    this.handleEvents(events);
+  }
+
+  /** Apply any recorded actions that are due at the current sim time. */
+  private applyDueReplayActions(): void {
+    if (!this.replay) return;
+    while (this.replayCursor < this.replay.length) {
+      const a = this.replay[this.replayCursor]!;
+      if (a.t > this.round.flow.nowMs) break;
+      this.replayCursor++;
+      if (a.type === 'place') {
+        this.place(0, a.pos, a.dispenser);
+      } else if (a.type === 'fast') {
+        this.round.apply({ type: 'fastForward', player: 0 });
+      } else {
+        this.round.easyQueue = a.on;
+      }
+    }
   }
 
   // ---------- frame ----------
@@ -147,6 +185,7 @@ export class PlayingScreen {
     if (!this.paused) {
       this.accumulator += Math.min(dtMs, 100);
       while (this.accumulator >= SIM_DT) {
+        this.applyDueReplayActions();
         this.accumulator -= SIM_DT;
         this.handleEvents(this.round.tick(SIM_DT));
       }
@@ -225,6 +264,7 @@ export class PlayingScreen {
       paused: this.paused,
       fastFlow: round.flow.fastForward,
       musicOn: this.callbacks.musicOn?.(),
+      replay: this.replay !== undefined,
     });
     r.present();
   }
